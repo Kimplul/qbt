@@ -1,0 +1,12 @@
+/* this is a function of some kind */
+do_stuff (i27 a0, i27 a1 => i27,,)
+{
+	i27 r0 = a0 + a1;
+	/* r0 is reassigned */
+	(i27 r0, i27 r1,) = &do_more_stuff (r0, i9 29);
+	r0 < r1 -> somewhere_else;
+	=> (r1,,);
+
+	somewhere_else:
+	=> (r0,,);
+}

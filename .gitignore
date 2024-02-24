@@ -1,0 +1,8 @@
+deps.mk
+docs/output
+build
+gen
+qbt
+*.t
+!gen/.gitkeep
+!include/qbt

@@ -1,0 +1,7 @@
+#!/bin/sh
+# look through all files for either @file or \file
+for file in $@
+do
+	grep -c '[@\]file' "$file" |\
+	awk -F':' "\$1 == 0 {print \"Undocumented file: $file\"}"
+done
