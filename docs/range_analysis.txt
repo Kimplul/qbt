@@ -1,0 +1,108 @@
+Here's an approximate order of steps that I'm thinking about:
+
+Block0():
+	n0 = 4
+	goto Block1(n0, 0)
+
+Block1(n1, i0):
+	j0 = i0 + n0
+	i1 = i0 + 1
+	i1 < 5 Block1(n1, i1) else Block2()
+
+Block2():
+	nop
+
+=>
+n0 = U
+n1 = U
+i0 = U
+j0 = U
+i1 = U
+
+=>
+n0 = [4, 4]
+n1 = U
+i0 = U
+j0 = U
+i1 = U
+
+=>
+n0 = [4, 4]
+n1 = [4, 4]
+i0 = [0, 0]
+j0 = U
+i1 = U
+
+=>
+n0 = [4, 4]
+n1 = [4, 4]
+i0 = [0, 0]
+j0 = [4, 4]
+i1 = U
+
+=>
+n0 = [4, 4]
+n1 = [4, 4]
+i0 = [0, 0]
+j0 = [4, 4]
+i1 = [1, 1]
+
+/* here's the branch */
+n1 = minmax([4, 4], [4, 4]) = [4, 4]
+i0 = minmax(i0, maxmin(i1, [-inf, 4])) = minmax(i0, [1, 4]) = [0, 4]
+i0 changed, so recalculate block?
+maxmin() here is to signify that the absolute highest value i0 could have
+is the branch condition value, with i1 giving the lowest possible value.
+Not entirely sure if that's all it takes, but at least this fairly trivial
+example seems to work. Should check how comparison results fare, like
+"b0 = r1 < 5
+ b0 == 1 Block0 ..."
+
+One (radical) option would be to ban comparisons completely and just force the
+compiler to output branches everywhere, at which point it would then probably be
+necessary to pattern match the hardware instructions or something to
+'reimplement' comparisons.
+
+=>
+n0 = [4, 4]
+n1 = [4, 4]
+i0 = [0, 4]
+j0 = [4, 4]
+i1 = [1, 1]
+
+=>
+n0 = [4, 4]
+n1 = [4, 4]
+i0 = [0, 4]
+j0 = [4, 8]
+i1 = [1, 5]
+
+/* here's the branch again */
+n1 = minmax([4, 4], [4, 4]) = [4, 4] // no change
+i0 = minmax(i0, maxmin(i1, [-inf, 4])) = minmax(i0, [1, 4]) = [0, 4]
+no change so don't recalculate block?
+
+
+===
+
+The above works alright, but the compiler is likely easier to implement if the
+optimizer accepts stuff like
+
+	b0 = i5 < 5
+	bnz b0 Block1(...) else Block2(...)
+
+bnz/bez are the weakest for of branch and doesn't provide any good info on
+limits (full blown SCEV as in GCC would likely be required for that), but we can
+add a pass that tries to move 'trivial' branches to
+
+	i5 < 5 Block1(...) else Block2(...)
+
+as this gives more context to the blocks that follow, even if just a little bit.
+Could still be useful for the range analysis.
+
+In the weak case, bnz/beq, we must perform a weak widening of all parameters in
+the blocks, i.e. if the new range max is larger, it must be increased to
+infinity, and if the new range min is smaller, it must be decreased to negative
+infinity. If any ranges changed, mark the block as not done yet and should be
+recomputed. Note that the weak widening applies to the stronger conditonal
+branches as well for all parameters except where the condition register is used.

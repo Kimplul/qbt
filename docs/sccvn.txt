@@ -1,0 +1,37 @@
+Strongly connected components could be a cool pass to implement, it
+handles constant folding (seems like most passes have some support for constant
+folding?) and certain kinds of common subexpression elimination.
+
+The paper I'm mainly looking at is https://www.cs.rice.edu/~keith/Publications/SCCVN.pdf
+
+The algorithm (in short) is
+
+for all SSA names i
+	VN [i] <- T
+repeat
+	done <- TRUE
+	for all blocks b in reverse postorder
+		for all definitions x in b
+		temp <- lookup(x:op; VN[x[1]]; VN[x[2]]; x)
+		if VN[x] != temp
+			done <- FALSE
+			VN[x] <- temp
+	Remove all entries from the hash table
+until done
+
+Where lookup computes a unique hash for x, in C I guess it could just be
+op VN1 VN2
+32 64  64
+
+The lookup returns the name of the expression if found, otherwise adds the name x to
+the map. The paper extends this by adding a map where each SSA name also uses
+the constant propagation lattice (TODO: can we use a range lattice? or is that
+too much in one pass?)
+
+To make sure a + b and b + a are the same, I guess each expression node should
+sort its inputs.
+
+SCC is in the name, but I wonder if being strongly connected is necessary for
+the algorithm or if it only speeds up the computation as doing it in that order
+ensures values are 'final' when the block (or block group) is finished, whereas
+otherwise the whole graph seems to be iterated on excessively?

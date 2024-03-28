@@ -1,0 +1,45 @@
+Conversion to SSA form, could maybe be done in two phases:
+1. Build up initial tree of block parameters, something like
+get_in(block b) {
+	b->visited = true
+	bitset gen = 0
+	bitset in = 0
+
+	for i in b->insns {
+		if i.in1 not in gen {
+			add i.in1 to in
+		}
+
+		if i.in2 not in gen {
+			add i.in2 to in
+		}
+
+		add i.out to gen
+	}
+
+	/* recursion, but presumably the user's programs are reasonable
+	 * in size. Otherwise we can probably build up some piecewise
+	 * construct that iterates normally until it converges or something
+	 */
+	bitset s1 = get_in(b->s1)
+	bitset s2 = get_in(b->s2)
+
+	add from s1 not in gen to in
+	add from s2 not in gen to in
+}
+
+2. Within each block, allocate unique temporary variables.
+
+This should result in SSA form with block arguments?
+
+In SSA form, calculate (approximate) value ranges. Assign each location
+some value range, [min, max], and propagate functions that calculate the ranges
+wherever possible. Where min==max, the location can be replaced by min and the
+constants propagated. Generally already checked blocks would not need to be
+checked, unless one of the input parameters' range was undefined but became
+defined, or was a constant but became a range, or was positive/negative but the
+range expanded to be negative/positive as well.
+
+Do register allocation
+
+Do instruction generation

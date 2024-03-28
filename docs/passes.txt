@@ -1,0 +1,7 @@
+1. Input -> SSA block parameter form
+2. First ABI lowering
+3. Boolean expression to branch conditions wherever possible (also sort operands
+wherever possible? so instead of 5 + i2 it becomes i2 + 5 or something?)
+4. SCCVN (+ weak value range instead of just constant propagation?)
+5. Register allocation
+6. Instruction selection (pattern matching?)
