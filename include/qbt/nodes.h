@@ -38,6 +38,7 @@ enum insn_type {
 	J,
 	RET,
 	ARG,
+	RETARG,
 	PARAM,
 	RETVAL,
 };
@@ -73,9 +74,19 @@ enum insn_type {
 	M(BGT)\
 	M(J)\
 	M(ARG)\
+	M(RETARG)\
 	M(PARAM)\
 	M(RET)\
 	M(RETVAL)\
+
+static inline const char *op_str(enum insn_type n) {
+#define CASE(I) case I: return #I;
+	switch (n) {
+		FOREACH_INSN_TYPE(CASE);
+	}
+#undef CASE
+	return "unknown";
+}
 
 enum val_class {
 	REG,
@@ -123,6 +134,8 @@ struct fn {
 	const char *name;
 	size_t ntmp;
 	size_t nblk;
+	size_t max_callee_save;
+	bool has_calls;
 	struct vec blks;
 	struct vec labels;
 	struct vec tmps;
@@ -144,6 +157,14 @@ static inline struct val noclass()
 		.class = NOCLASS,
 		.r = 0,
 		.v = 0,
+	};
+}
+
+static inline struct val reg_val(int64_t r)
+{
+	return (struct val){
+		.class = REG,
+		.r = r
 	};
 }
 

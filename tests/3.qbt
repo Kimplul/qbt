@@ -1,0 +1,13 @@
+main()
+{
+	i27 i = 0;
+	i27 max = 1000000000;
+	i27 sum = 0;
+
+top:
+	i27 sum = sum + i;
+	i27 i = i + i27 1;
+	i < max -> top;
+	&_putchar(sum) => ();
+	=> ();
+}

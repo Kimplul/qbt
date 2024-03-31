@@ -4,6 +4,8 @@
 #include <limits.h>
 
 #include <qbt/parser.h>
+#include <qbt/opt.h>
+#include <qbt/asm.h>
 #include <qbt/debug.h>
 
 static char *read_file(const char *file, FILE *f)
@@ -56,6 +58,11 @@ int main(int argc, char *argv[])
 	foreach_fn(i, p->fns) {
 		struct fn_map m = fn_at(p->fns, i);
 		dump_function(m.fn);
+		// also handles things like register mapping etc.
+		optimize(m.fn);
+		dump_function(m.fn);
+		// for now
+		output(m.fn, stdout);
 	}
 
 	destroy_parser(p);

@@ -104,6 +104,8 @@ struct fn *new_function()
 	f->blks = vec_create(sizeof(struct blk *));
 	f->tmps = vec_create(sizeof(struct tmp_map));
 	f->labels = vec_create(sizeof(struct label_map));
+	f->has_calls = false;
+	f->max_callee_save = 0;
 	/* empty block */
 	new_block(f);
 	return f;
@@ -134,15 +136,6 @@ void new_label(struct fn *f, struct blk *b, const char *name)
 	vec_append(&f->labels, &(struct label_map){.id = name, .b = b});
 }
 
-static const char *op_str(enum insn_type n) {
-#define CASE(I) case I: return #I;
-	switch (n) {
-		FOREACH_INSN_TYPE(CASE);
-	}
-#undef CASE
-	return "unknown";
-}
-
 void dump_val(struct val val) {
 	long long r = val.r;
 	long long v = val.v;
@@ -160,7 +153,7 @@ void dump_val(struct val val) {
 
 void dump_insn(struct insn i)
 {
-	printf("\t");
+	printf("//\t");
 
 	if (hasclass(i.out)) {
 		dump_val(i.out);
@@ -189,7 +182,7 @@ bool return_blk(struct blk *b)
 
 void dump_block(struct blk *b)
 {
-	printf("\t/*** block %lld ", (long long)b->id);
+	printf("//\t/*** block %lld ", (long long)b->id);
 	if (b->name) printf("(%s) ", b->name);
 	printf("***/\n");
 
@@ -199,20 +192,20 @@ void dump_block(struct blk *b)
 	}
 
 	if (return_blk(b)) {
-		printf("\n");
+		printf("//\tRETURN\n");
 		return;
 	}
 
 	if (b->btype != J) {
 		assert(b->s2);
 		struct blk *s2 = b->s2;
-		printf("\t%s ", op_str(b->btype));
+		printf("//\t%s ", op_str(b->btype));
 		dump_val(b->cmp[0]);
 		printf(" ");
 		dump_val(b->cmp[1]);
 		printf(" -> %lli\n", (long long)s2->id);
 	}
-	printf("\n");
+	printf("//\n");
 }
 
 void dump_function(struct fn *f) {

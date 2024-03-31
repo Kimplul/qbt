@@ -12,11 +12,6 @@
 #include <qbt/debug.h>
 #include <qbt/nodes.h>
 
-struct ret_helper {
-	const char *r;
-	enum val_type t;
-};
-
 %}
 
 %locations
@@ -31,7 +26,6 @@ struct ret_helper {
 
 %union {
 	struct val val;
-	struct ret_helper ret;
 	enum val_type type;
 	int64_t integer;
 	char *str;
@@ -77,8 +71,10 @@ struct ret_helper {
 %nterm <type> type
 
 %nterm <str> id addr local label
-%nterm <val> arg opt_arg
-%nterm <ret> call_ret opt_call_ret
+%nterm <val> arg
+%nterm <val> ret
+
+%nterm <integer> placeholder
 
 %{
 
@@ -201,6 +197,22 @@ static inline void do_new_label(struct parser *p, const char *s)
 	new_label(p->f, p->b, s);
 }
 
+static inline size_t do_cur_insn(struct parser *p)
+{
+	return vec_len(&p->b->insns);
+}
+
+static inline void do_ins_replace(struct parser *p, size_t i, struct insn n)
+{
+	insn_at(p->b->insns, i) = n;
+}
+
+#define INS_REPLACE(i, n)\
+	do_ins_replace(parser, i, n)
+
+#define CUR_INSN()\
+	do_cur_insn(parser)
+
 #define INSADD(o, t, r, a0, a1)\
 	do_insadd(parser, o, t, r, a0, a1)
 
@@ -260,7 +272,7 @@ data
 param
 	: type id {
 		struct val t = IDALLOC($[id]);
-		INSADD(PARAM, $[type], t, imm_val(parser->idx++, I27), noclass());
+		INSADD(PARAM, $[type], t, noclass(), imm_val(parser->idx++, I27));
 	}
 
 params
@@ -271,17 +283,6 @@ params
 opt_params
 	: params
 	| {}
-
-ret
-	: type
-
-opt_ret
-	: ret
-	| {}
-
-/* only three return args permitted (keep things simple for now) */
-rets
-	: opt_ret "," opt_ret "," opt_ret
 
 label
 	: id ":" {
@@ -299,7 +300,7 @@ arg
 		$$ = IDTOVAL($[id]);
 	}
 	| type int {
-		$$ = imm_val($[type], $[int]);
+		$$ = imm_val($[int], $[type]);
 	}
 
 arith
@@ -439,14 +440,24 @@ branch
 		NEW_BLOCK(J, noclass(), noclass(), $[local]);
 	}
 
-call_ret
-	: type id {
-		$$ = (struct ret_helper){.r = $[id], .t = $[type]};
+ret
+	: id {
+		$$ = IDALLOC($[id]);
 	}
 
-opt_call_ret
-	: call_ret
-	| { $$ = (struct ret_helper){.r = NULL, .t = NOTYPE}; }
+call_ret
+	: ret {
+		INSADD(RETVAL, NOTYPE, $[ret], noclass(), imm_val(parser->idx++, I27));
+	}
+
+call_rets
+	: call_ret "," call_rets
+	| call_ret ","
+	| call_ret
+
+opt_call_rets
+	: call_rets
+	| {}
 
 call_arg
 	: arg {
@@ -466,43 +477,43 @@ opt_call_args
 reset_index
 	: {parser->idx = 0;}
 
-call
-	: "(" opt_call_ret "," opt_call_ret "," opt_call_ret ")"
-	"=" addr reset_index "(" opt_call_args ")" {
-		/* call args should have inserted their own nodes */
-		INSADD(CALL, NOTYPE, noclass(), imm_ref($[addr]), noclass());
-
-		if ($2.r) {
-			struct val t = IDALLOC($2.r);
-			INSADD(RETVAL, $2.t, t, noclass(), imm_val(0, I27));
-		}
-
-		if ($4.r) {
-			struct val t = IDALLOC($4.r);
-			INSADD(RETVAL, $4.t, t, noclass(), imm_val(1, I27));
-		}
-
-		if ($6.r) {
-			struct val t = IDALLOC($6.r);
-			INSADD(RETVAL, $6.t, t, noclass(), imm_val(2, I27));
-		}
+placeholder
+	: {
+		$$ = CUR_INSN();
+		INSADD(CALL, NOTYPE, noclass(), noclass(), noclass());
 	}
 
-opt_arg
-	: arg
-	| { $$ = noclass(); }
+call
+	: addr reset_index "(" opt_call_args ")"
+	  "=>" placeholder reset_index "(" opt_call_rets ")" {
+		/* kind of hacky but works */
+		INS_REPLACE($[placeholder],
+			insn_create(CALL, NOTYPE,
+				noclass(), imm_ref($[addr]), noclass()));
+	}
+	| id reset_index "(" opt_call_args ")"
+	  "=>" placeholder reset_index "(" opt_call_rets ")" {
+		INS_REPLACE($[placeholder],
+			insn_create(CALL, NOTYPE,
+				noclass(), IDTOVAL($[id]), noclass()));
+	  }
+
+proc_ret
+	: id {
+		INSADD(RETARG, NOTYPE, noclass(), IDTOVAL($[id]), imm_val(parser->idx++, I27));
+	}
+
+proc_rets
+	: proc_ret "," proc_rets
+	| proc_ret ","
+	| proc_ret
+
+opt_proc_rets
+	: proc_rets
+	| {}
 
 return
-	: "=>" "(" opt_arg "," opt_arg "," opt_arg ")" {
-		if (!hasnoclass($3))
-			INSADD(RET, NOTYPE, noclass(), $3, imm_val(0, I27));
-
-		if (!hasnoclass($5))
-			INSADD(RET, NOTYPE, noclass(), $5, imm_val(1, I27));
-
-		if (!hasnoclass($7))
-			INSADD(RET, NOTYPE, noclass(), $7, imm_val(2, I27));
-
+	: "=>" reset_index "(" opt_proc_rets ")" {
 		NEW_BLOCK(RET, noclass(), noclass(), NULL);
 	}
 
@@ -524,8 +535,9 @@ body
 	| label
 	| insn ";"
 
+/** @todo add in return type checking? */
 function
-	: id reset_index "(" opt_params "=>" rets ")" "{" body "}" {
+	: id reset_index "(" opt_params ")" "{" body "}" {
 		NEW_FUNCTION($[id]);
 	}
 
