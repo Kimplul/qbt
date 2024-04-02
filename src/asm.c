@@ -240,10 +240,10 @@ static void output_ret(struct fn *f, FILE *o)
 static void output_j(struct blk *b, struct fn *f, FILE *o)
 {
 	/* the jump is directly to a following block, no need to do anything */
-	if (!b->to)
+	if (!b->to || b->s1 == b->s2)
 		return;
 
-	fprintf(o, "j .%s.%lli\n", f->name, (long long int)b->s1->id);
+	fprintf(o, "j .%s.%lli\n", f->name, (long long int)b->s2->id);
 }
 
 static void output_branch(struct blk *b, struct fn *f, FILE *o)

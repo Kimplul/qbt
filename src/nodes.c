@@ -48,6 +48,7 @@ struct blk *new_block(struct fn *f)
 {
 	struct blk *b = calloc(1, sizeof(struct blk));
 	b->id = ++f->nblk;
+	b->reachable = false;
 	b->insns = vec_create(sizeof(struct insn));
 	vec_append(&f->blks, &b);
 	return b;
@@ -81,6 +82,13 @@ void finish_function(struct fn *f, const char *name)
 	}
 
 	destroy_block(last_blk);
+
+	last_blk = blk_back(f->blks);
+	/* somewhat arbitrary restriction but I guess but makes the
+	 * implementation a bit simpler */
+	assert(last_blk->btype == RET);
+	last_blk->s1 = NULL;
+	last_blk->s2 = NULL;
 
 	foreach_blk(i, f->blks) {
 		struct blk *b = blk_at(f->blks, i);

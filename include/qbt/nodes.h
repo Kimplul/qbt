@@ -128,6 +128,8 @@ struct blk {
 
 	/* used to temporarily store label targets */
 	const char *to;
+	/* used by reachability analysis */
+	bool reachable;
 };
 
 struct fn {
@@ -252,6 +254,9 @@ struct label_map {
 
 #define blk_at(v, i)\
 	vect_at(struct blk *, v, i)
+
+#define blk_back(v)\
+	vect_at(struct blk *, v, vec_len(&v) - 1)
 
 #define blk_pop(v)\
 	vect_pop(struct blk *, v)
