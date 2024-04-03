@@ -9,7 +9,11 @@
  * Idea is that callee-save cost is paid once at the start of the function call,
  * after that they're free. Argument registers are generally important to keep
  * free to make sure function calls in loops etc. don't have to shuffle
- * registers around as much */
+ * registers around as much. The preferred order can probably be bikeshedded to death,
+ * eventually would be kind of cool to add some heuristic for which category
+ * might be best suited for a specific location. 
+ * One possible one would be that callee-save should be preferred if the
+ * lifetime overlaps a function call? */
 static const int64_t tr_map[] = {
 	RT0, RT1, RT2, RT3, RT4, RT5, RT6, RT7, RT8, RT9,
 	RT10, RT11, RT12, RT13, RT14, RT15, RT16, RT17, RT18, RT19,
@@ -69,7 +73,7 @@ static struct val get_hint(struct vec *hints, struct val from)
 	if ((int64_t)vec_len(hints) <= from.r)
 		return noclass();
 
-	return rewrite_tmp(hints, from);
+	return reg_at(*hints, from.r);
 }
 
 struct lifetime {
@@ -94,7 +98,7 @@ static void add_def(struct vec *lifetimes, struct val v, size_t i)
 	/* I guess a def isn't techincally a 'use' but good enough, we assume
 	 * that unused variables have already been removed by some earlier stage
 	 * (not currently true but that's the intention) */
-	lifetime_at(*lifetimes, v.r) = (struct lifetime){v, i, 0, 1};
+	lifetime_at(*lifetimes, v.r) = (struct lifetime){v, i, i, 1};
 }
 
 static void add_use(struct vec *lifetimes, struct val v, size_t i)
@@ -108,7 +112,7 @@ static void add_use(struct vec *lifetimes, struct val v, size_t i)
 }
 
 static void collect_lifetimes(struct blk *b, struct vec *hints,
-                              struct vec *lifetimes)
+                              struct vec *lifetimes, struct vec *rmap, struct vec *calls)
 {
 	foreach_blk_param(pi, b->params) {
 		struct val v = blk_param_at(b->params, pi);
@@ -130,12 +134,20 @@ static void collect_lifetimes(struct blk *b, struct vec *hints,
 		/* collect some early hints */
 		if (i.type == MOVE) {
 			/* input arguments, retvals */
-			if (i.out.class == TMP && i.in[0].class == REG)
+			if (i.out.class == TMP && i.in[0].class == REG) {
 				add_hint(hints, i.out, i.in[0]);
+				/* retvals must be treated as reserving that
+				 * virtual register */
+				add_rewrite_rule(rmap, i.out, i.in[0]);
+			}
 
 			if (i.out.class == REG && i.in[0].class == TMP)
 				add_hint(hints, i.in[0], i.out);
 		}
+
+		/* collect calls, to be used later */
+		if (i.type == CALL)
+			vec_append(calls, &pos);
 
 		pos++;
 	}
@@ -157,22 +169,27 @@ static void collect_lifetimes(struct blk *b, struct vec *hints,
 	}
 }
 
-static void build_active(struct vec *active, struct vec *lifetimes, size_t i)
+static  void build_active_between(struct vec *active, struct vec *lifetimes, size_t start, size_t end)
 {
-	struct lifetime ref = lifetime_at(*lifetimes, i);
 	foreach_lifetime(li, *lifetimes) {
 		struct lifetime l = lifetime_at(*lifetimes, li);
 		if (l.used == 0)
 			continue;
 
-		if (l.end < ref.start)
+		if (l.end < start)
 			continue;
 
-		if (l.start > ref.end)
+		if (l.start > end)
 			continue;
 
 		vec_append(active, &l);
 	}
+}
+
+static void build_active(struct vec *active, struct vec *lifetimes, size_t i)
+{
+	struct lifetime ref = lifetime_at(*lifetimes, i);
+	build_active_between(active, lifetimes, ref.start, ref.end);
 }
 
 static void build_reserved(struct vec *reserved, struct vec *active,
@@ -212,14 +229,51 @@ static struct val find_free_reg(struct vec *reserved)
 	}
 
 	/* handle spill case later */
+	/* right now I'm thinking that spills should behave like SAVE/RESTORE,
+	 * i.e. they get an index and the spilled number of registers is counted
+	 * somewhere and added to the frame size like call registers. */
 	assert(0 &&
 	       "ran out of registers, time to implement proper spill handling");
 	abort();
 }
 
-static void build_rmap(struct vec *hints, struct vec *lifetimes,
+static size_t highest_sreg(struct val f)
+{
+	assert(f.class == REG);
+	switch (f.r) {
+		case RS0: return 1;
+		case RS1: return 2;
+		case RS2: return 3;
+		case RS3: return 4;
+		case RS4: return 5;
+		case RS5: return 6;
+		case RS6: return 7;
+		case RS7: return 8;
+		case RS8: return 9;
+		case RS9: return 10;
+		case RS10: return 11;
+		case RS11: return 12;
+		case RS12: return 13;
+		case RS13: return 14;
+		case RS14: return 15;
+		case RS15: return 16;
+		case RS16: return 17;
+		case RS17: return 18;
+		case RS18: return 19;
+		case RS19: return 20;
+		case RS20: return 21;
+		case RS21: return 22;
+		case RS22: return 23;
+		case RS23: return 24;
+	}
+
+	return 0;
+}
+
+static size_t build_rmap(struct vec *hints, struct vec *lifetimes,
                        struct vec *rmap)
 {
+	size_t max_callee_save = 0;
 	struct vec active = vec_create(sizeof(struct lifetime));
 	struct vec reserved = vec_create(sizeof(struct val));
 
@@ -228,7 +282,11 @@ static void build_rmap(struct vec *hints, struct vec *lifetimes,
 		if (l.used == 0)
 			continue;
 
+		if (has_rewrite_rule(rmap, l.v))
+			continue;
+
 		vec_reset(&active);
+		vec_reset(&reserved);
 		build_active(&active, lifetimes, li);
 		build_reserved(&reserved, &active, rmap);
 
@@ -244,12 +302,20 @@ static void build_rmap(struct vec *hints, struct vec *lifetimes,
 		 * least used register, but that's a bit more complicated than
 		 * just this linear scan */
 		struct val f = find_free_reg(&reserved);
+		if (highest_sreg(f) > max_callee_save)
+			max_callee_save = highest_sreg(f);
+
 		add_rewrite_rule(rmap, l.v, f);
 	}
+
+	vec_destroy(&active);
+	vec_destroy(&reserved);
+
+	return max_callee_save;
 }
 
 /* has_calls is kind of in an iffy place but I guess it's fine */
-static void do_rewrites(struct blk *b, struct vec *rmap, struct fn *f)
+static void do_rewrites(struct blk *b, struct vec *rmap)
 {
 	foreach_blk_param(pi, b->params) {
 		struct val p = blk_param_at(b->params, pi);
@@ -266,10 +332,6 @@ static void do_rewrites(struct blk *b, struct vec *rmap, struct fn *f)
 
 		if (i.out.class == TMP)
 			i.out = rewrite_tmp(rmap, i.out);
-
-		/** @todo save caller-save at callsites here */
-		if (i.type == CALL)
-			f->has_calls = true;
 
 		/* write back changes, christ I forget this a lot */
 		insn_at(b->insns, ii) = i;
@@ -292,25 +354,160 @@ static void do_rewrites(struct blk *b, struct vec *rmap, struct fn *f)
 	}
 }
 
+static bool callee_save(struct val r)
+{
+	assert(r.class == REG);
+	switch (r.r) {
+		case RS0: return true;
+		case RS1: return true;
+		case RS2: return true;
+		case RS3: return true;
+		case RS4: return true;
+		case RS5: return true;
+		case RS6: return true;
+		case RS7: return true;
+		case RS8: return true;
+		case RS9: return true;
+		case RS10: return true;
+		case RS11: return true;
+		case RS12: return true;
+		case RS13: return true;
+		case RS14: return true;
+		case RS15: return true;
+		case RS16: return true;
+		case RS17: return true;
+		case RS18: return true;
+		case RS19: return true;
+		case RS20: return true;
+		case RS21: return true;
+		case RS22: return true;
+		case RS23: return true;
+	}
+
+	return false;
+}
+
+static void insn_insert_before_call(struct blk *b, struct insn save, size_t pos)
+{
+	assert((insn_at(b->insns, pos)).type == CALL);
+	struct insn setup;
+	do {
+		/* the first instruction in a block can be part of a call setup */
+		if (pos == 0)
+			break;
+
+		pos--;
+		setup = insn_at(b->insns, pos);
+	} while (has_insn_flag(setup, CALL_SETUP));
+
+	/* the do-while loop technically went one too far, fix */
+	insn_insert(b, save, pos == 0 ? 0 : pos + 1);
+}
+
+static void insn_insert_after_call(struct blk *b, struct insn restore, size_t pos)
+{
+	assert((insn_at(b->insns, pos)).type == CALL);
+	size_t max = vec_len(&b->insns) - 1;
+
+	struct insn setup;
+	do {
+		if (pos == max)
+			break;
+
+		pos++;
+		setup = insn_at(b->insns, pos);
+	} while (has_insn_flag(setup, CALL_TEARDOWN));
+
+	insn_insert(b, restore, pos);
+}
+
+static size_t do_call_saves(struct blk *b, struct vec *lifetimes, struct vec *rmap, struct vec *calls)
+{
+	size_t offset = 0;
+	size_t max_counter = 0;
+	struct vec active = vec_create(sizeof(struct lifetime));
+	struct vec reserved = vec_create(sizeof(struct val));
+
+	foreach_vec(ci, *calls) {
+		size_t call_pos = vect_at(size_t, *calls, ci);
+
+		vec_reset(&active);
+		vec_reset(&reserved);
+		build_active_between(&active, lifetimes, call_pos, call_pos);
+		build_reserved(&reserved, &active, rmap);
+
+		/* what follows is a slight bit of index counting, a bit
+		 * difficult to follow but not too bad */
+
+		/* add a save right before call, offset is how many
+		 * save/restores we've already added, very important */
+		size_t counter = 0;
+		foreach_val(ri, reserved) {
+			struct val r = val_at(reserved, ri);
+			assert(r.class == REG);
+			if (callee_save(r))
+				continue;
+
+			struct insn save = insn_create(SAVE, NOTYPE,
+							noclass(), r, imm_val(counter, I27));
+			insn_insert_before_call(b, save, call_pos + offset - 1);
+			offset++;
+			counter++;
+		}
+
+		call_pos += offset;
+
+		counter = 0;
+		foreach_val(ri, reserved) {
+			struct val r = val_at(reserved, ri);
+			if (callee_save(r))
+				continue;
+
+			/* add a restore right after call ~area~ */
+			/* hmm, restore should maybe put r as its output to be
+			 * more consistent... */
+			struct insn restore = insn_create(RESTORE, NOTYPE,
+							noclass(), r, imm_val(counter, I27));
+			insn_insert_after_call(b, restore, call_pos - 1);
+			counter++;
+			offset++;
+		}
+
+		if (counter > max_counter)
+			max_counter = counter;
+	}
+
+	vec_destroy(&active);
+	vec_destroy(&reserved);
+
+	return max_counter;
+}
+
 /* assumes ssa form */
 void regalloc(struct fn *f)
 {
 	struct vec hints = vec_create(sizeof(struct val));
 	struct vec lifetimes = vec_create(sizeof(struct lifetime));
 	struct vec rmap = vec_create(sizeof(struct val));
+	struct vec calls = vec_create(sizeof(size_t));
 
 	/* here it would probably make sense to iterate through lifetimes in
 	 * order of priority, like loop nesting/count etc */
 	foreach_blk(bi, f->blks) {
 		struct blk *b = blk_at(f->blks, bi);
 		vec_reset(&lifetimes);
+		vec_reset(&calls);
 		/** @todo collect hints from args/params */
-		collect_lifetimes(b, &hints, &lifetimes);
-		build_rmap(&hints, &lifetimes, &rmap);
-		do_rewrites(b, &rmap, f);
+		collect_lifetimes(b, &hints, &lifetimes, &rmap, &calls);
+		f->max_callee_save = build_rmap(&hints, &lifetimes, &rmap);
+		do_rewrites(b, &rmap);
+		f->max_call_save = do_call_saves(b, &lifetimes, &rmap, &calls);
 		/** @todo forward_hints(b, &hints, &rmap) */
+		if (vec_len(&calls) != 0)
+			f->has_calls = true;
 	}
 
+	vec_destroy(&calls);
 	vec_destroy(&hints);
 	vec_destroy(&lifetimes);
 	vec_destroy(&rmap);

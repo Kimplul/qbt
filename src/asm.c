@@ -95,26 +95,50 @@ static const char *rname(struct val v)
 	abort();
 }
 
+static size_t frame_size(struct fn *f)
+{
+	return 3 * f->max_callee_save + 3 * f->max_call_save + 3 * 2;
+}
+
+static size_t callee_save_fploc(size_t i)
+{
+	return 3 * (i + 1) + 3 * 2;
+}
+
+static size_t call_save_fploc(struct fn *f, size_t i)
+{
+	return 3 * (f->max_callee_save + 1) + 3 * i + 3 * 2;
+}
+
+static size_t ra_fploc()
+{
+	return 6;
+}
+
+static size_t fp_fploc()
+{
+	return 3;
+}
+
 static void save_state(struct fn *f, FILE *o)
 {
 	/* stack frame:
 	 * last frame
 	 * ra
-	 * s0
-	 * ...
-	 * local variables
+	 * callee save
+	 * local variables/spills
 	 * <- sp
 	 */
-	fprintf(o, "st w fp, -3(sp)\n");
-	if (f->has_calls)
-		fprintf(o, "st w ra, -6(fp)\n");
-
+	fprintf(o, "st w fp, -%zi(sp)\n", fp_fploc());
 	fprintf(o, "mv fp, sp\n");
-	fprintf(o, "addi sp, sp, -%zi\n", f->max_callee_save * 3 + 6);
+	if (f->has_calls)
+		fprintf(o, "st w ra, -%zi(fp)\n", ra_fploc());
+
+	fprintf(o, "addi sp, sp, -%zi\n", frame_size(f));
 
 	for (size_t i = 0; i < f->max_callee_save; ++i) {
 		fprintf(o, "st w s%zi, -%zi(fp)\n",
-		        i, 3 * i + 9);
+		        i, callee_save_fploc(i));
 	}
 }
 
@@ -122,13 +146,13 @@ static void restore_state(struct fn *f, FILE *o)
 {
 	for (size_t i = 0; i < f->max_callee_save; ++i) {
 		fprintf(o, "ld w s%zi, -%zi(fp)\n",
-		        i, 3 * i + 9);
+		        i, callee_save_fploc(i));
 	}
 
 	if (f->has_calls)
-		fprintf(o, "ld w ra, -6(fp)\n");
+		fprintf(o, "ld w ra, -%zi(fp)\n", ra_fploc());
 
-	fprintf(o, "ld w fp, -3(fp)\n");
+	fprintf(o, "ld w fp, -%zi(fp)\n", fp_fploc());
 	fprintf(o, "mv sp, fp\n");
 }
 
@@ -202,7 +226,25 @@ static void output_call(struct insn n, FILE *o)
 	abort();
 }
 
-static void output_insn(struct insn n, FILE *o)
+static void output_save(struct insn n, FILE *o, struct fn *f)
+{
+	struct val r = n.in[0];
+	assert(r.class == REG);
+	int64_t i = n.in[1].v;
+	fprintf(o, "st w %s, -%zi(fp)\n",
+			rname(r), call_save_fploc(f, i));
+}
+
+static void output_restore(struct insn n, FILE *o, struct fn *f)
+{
+	struct val r = n.in[0];
+	assert(r.class == REG);
+	int64_t i = n.in[1].v;
+	fprintf(o, "ld w %s, -%zi(fp)\n",
+			rname(r), call_save_fploc(f, i));
+}
+
+static void output_insn(struct insn n, FILE *o, struct fn *f)
 {
 	/* one insn directly matches one or more assembly instructions,
 	 * we may be missing out on certain optimizations by not using some kind
@@ -213,6 +255,8 @@ static void output_insn(struct insn n, FILE *o)
 	case SUB: output_sub(n, o); break;
 	case COPY: output_copy(n, o); break;
 	case CALL: output_call(n, o); break;
+	case SAVE: output_save(n, o, f); break;
+	case RESTORE: output_restore(n, o, f); break;
 	default: fprintf(stderr, "unimplemented insn: %s\n", op_str(n.type));
 		abort();
 	}
@@ -285,7 +329,7 @@ void output(struct fn *f, FILE *o)
 
 		foreach_insn(i, b->insns) {
 			struct insn n = insn_at(b->insns, i);
-			output_insn(n, o);
+			output_insn(n, o, f);
 		}
 
 		if (b->s2)

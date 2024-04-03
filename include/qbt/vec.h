@@ -18,6 +18,7 @@ size_t vec_len(struct vec *v);
 void *vec_at(struct vec *v, size_t i);
 void *vec_pop(struct vec *v);
 void vec_append(struct vec *v, void *n);
+void vec_insert(struct vec *v, void *n, size_t i);
 
 #define foreach_vec(iter, v) \
 	for (size_t iter = 0, __n = vec_len(&v); iter < __n; ++iter)

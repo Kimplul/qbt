@@ -41,6 +41,15 @@ enum insn_type {
 	RETARG,
 	PARAM,
 	RETVAL,
+
+	/* internal */
+	SAVE,
+	RESTORE,
+};
+
+enum insn_flags {
+	CALL_TEARDOWN = (1 << 0),
+	CALL_SETUP = (1 << 1),
 };
 
 #define FOREACH_INSN_TYPE(M) \
@@ -78,6 +87,8 @@ enum insn_type {
 	M(PARAM) \
 	M(RET) \
 	M(RETVAL) \
+	M(SAVE) \
+	M(RESTORE)
 
 static inline const char *op_str(enum insn_type n) {
 #define CASE(I) case I: return #I;
@@ -115,7 +126,18 @@ struct insn {
 	enum val_type vtype;
 	struct val out;
 	struct val in[2];
+	enum insn_flags flags;
 };
+
+static inline void set_insn_flags(struct insn *i, enum insn_flags flags)
+{
+	i->flags |= flags;
+}
+
+static inline bool has_insn_flag(struct insn i, enum insn_flags flag)
+{
+	return i.flags & flag;
+}
 
 struct blk {
 	const char *name;
@@ -143,6 +165,7 @@ struct fn {
 	size_t ntmp;
 	size_t nblk;
 	size_t max_callee_save;
+	size_t max_call_save;
 	bool has_calls;
 	struct vec blks;
 	struct vec labels;
@@ -315,5 +338,10 @@ struct label_map {
 
 #define foreach_insn(iter, insns) \
 	foreach_vec(iter, insns)
+
+static inline void insn_insert(struct blk *b, struct insn i, size_t pos)
+{
+	vec_insert(&b->insns, &i, pos);
+}
 
 #endif /* NODES_H */

@@ -49,6 +49,26 @@ void vec_append(struct vec *v, void *n)
 	memcpy(p, n, v->ns);
 }
 
-void vec_destroy(struct vec *v) {
+void vec_destroy(struct vec *v)
+{
 	free(v->buf);
+}
+
+void vec_insert(struct vec *v, void *n, size_t i)
+{
+	assert(i <= vec_len(v));
+	if (i == vec_len(v))
+		vec_append(v, n);
+
+	v->n++;
+	if (v->n >= v->s) {
+		v->s *= 2;
+		v->buf = realloc(v->buf, v->s * v->ns);
+	}
+
+	void *p = vec_at(v, i);
+	size_t elems = v->n - i - 1;
+	size_t bytes = elems * v->ns;
+	memmove(p + v->ns, p, bytes);
+	memcpy(p, n, v->ns);
 }

@@ -144,6 +144,8 @@ void destroy_block(struct blk *b)
 {
 	vec_destroy(&b->insns);
 	vec_destroy(&b->params);
+	vec_destroy(&b->args1);
+	vec_destroy(&b->args2);
 	free(b);
 }
 
@@ -187,6 +189,9 @@ void dump_insn(struct insn i)
 		printf(" ");
 		dump_val(i.in[1]);
 	}
+
+	if (i.flags)
+		printf("*");
 
 	printf("\n");
 }
