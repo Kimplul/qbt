@@ -78,7 +78,7 @@ static void build_params(struct blk *b, int visited)
 		struct val in2 = i.in[1];
 		if (in2.class == TMP && !has_val(&generated, in2))
 			add_val(&required, in2);
-			
+
 		struct val out = i.out;
 		if (out.class == TMP) {
 			add_val(&generated, out);
@@ -147,7 +147,7 @@ static void collect_params(struct blk *b, int visited)
 	}
 }
 
-#define tmpval_at(rmap, i)\
+#define tmpval_at(rmap, i) \
 	vect_at(struct val, rmap, i)
 
 static void add_rewrite_rule(struct vec *rmap, struct val from, struct val to)

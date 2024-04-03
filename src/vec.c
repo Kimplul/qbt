@@ -7,11 +7,16 @@
 struct vec vec_create(size_t ns)
 {
 	return (struct vec) {
-		.n = 0,
-		.s = 1,
-		.ns = ns,
-		.buf = malloc(ns),
+		       .n = 0,
+		       .s = 1,
+		       .ns = ns,
+		       .buf = malloc(ns),
 	};
+}
+
+void vec_reset(struct vec *v)
+{
+	v->n = 0;
 }
 
 size_t vec_len(struct vec *v)

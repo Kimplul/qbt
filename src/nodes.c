@@ -6,7 +6,8 @@
 #include <qbt/debug.h>
 #include <qbt/vec.h>
 
-void insadd(struct blk *b, enum insn_type o, enum val_type t, struct val r, struct val a0, struct val a1)
+void insadd(struct blk *b, enum insn_type o, enum val_type t, struct val r,
+            struct val a0, struct val a1)
 {
 	struct insn i = insn_create(o, t, r, a0, a1);
 	vec_append(&b->insns, &i);
@@ -35,7 +36,8 @@ int64_t idmatch(struct fn *f, const char *id)
 	return -1;
 }
 
-void finish_block(struct blk *b, enum insn_type cmp, struct val a0, struct val a1, const char *label)
+void finish_block(struct blk *b, enum insn_type cmp, struct val a0,
+                  struct val a1, const char *label)
 {
 	assert(cmp >= BEQ && cmp <= RET && "illegal comparison type for block");
 	b->btype = cmp;
@@ -198,7 +200,7 @@ void dump_block(struct blk *b)
 {
 	printf("//\t/*** block %lld ", (long long)b->id);
 	if (b->name) printf("\"%s\" ", b->name);
-	
+
 	printf("(");
 	foreach_blk_param(pi, b->params) {
 		struct val v = blk_param_at(b->params, pi);

@@ -44,22 +44,22 @@ struct parser *create_parser();
 void parse(struct parser *p, const char *fname, const char *buf);
 void destroy_parser(struct parser *p);
 
-#define foreach_fn(iter, v)\
+#define foreach_fn(iter, v) \
 	foreach_vec(iter, v)
 
-#define foreach_data(iter, v)\
+#define foreach_data(iter, v) \
 	foreach_vec(iter, v)
 
-#define foreach_str(iter, v)\
+#define foreach_str(iter, v) \
 	foreach_vec(iter, v)
 
-#define fn_at(v, i)\
+#define fn_at(v, i) \
 	vect_at(struct fn_map, v, i)
 
-#define data_at(v, i)\
+#define data_at(v, i) \
 	vect_at(struct data_map, v, i)
 
-#define str_at(v, i)\
+#define str_at(v, i) \
 	vect_at(char *, v, i)
 
 #endif /* PARSER_H */

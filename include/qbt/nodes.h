@@ -43,46 +43,46 @@ enum insn_type {
 	RETVAL,
 };
 
-#define FOREACH_INSN_TYPE(M)\
-	M(ADD)\
-	M(SUB)\
-	M(MUL)\
-	M(DIV)\
-	M(REM)\
-	M(CALL)\
-	M(LABEL)\
-	M(STORE)\
-	M(LOAD)\
-	M(ALLOC)\
-	M(COPY)\
-	M(MOVE)\
-	M(EQ)\
-	M(NE)\
-	M(LE)\
-	M(GE)\
-	M(LT)\
-	M(GT)\
-	M(NOT)\
-	M(NEG)\
-	M(LSHIFT)\
-	M(RSHIFT)\
-	M(BEQ)\
-	M(BNE)\
-	M(BLE)\
-	M(BGE)\
-	M(BLT)\
-	M(BGT)\
-	M(J)\
-	M(ARG)\
-	M(RETARG)\
-	M(PARAM)\
-	M(RET)\
-	M(RETVAL)\
+#define FOREACH_INSN_TYPE(M) \
+	M(ADD) \
+	M(SUB) \
+	M(MUL) \
+	M(DIV) \
+	M(REM) \
+	M(CALL) \
+	M(LABEL) \
+	M(STORE) \
+	M(LOAD) \
+	M(ALLOC) \
+	M(COPY) \
+	M(MOVE) \
+	M(EQ) \
+	M(NE) \
+	M(LE) \
+	M(GE) \
+	M(LT) \
+	M(GT) \
+	M(NOT) \
+	M(NEG) \
+	M(LSHIFT) \
+	M(RSHIFT) \
+	M(BEQ) \
+	M(BNE) \
+	M(BLE) \
+	M(BGE) \
+	M(BLT) \
+	M(BGT) \
+	M(J) \
+	M(ARG) \
+	M(RETARG) \
+	M(PARAM) \
+	M(RET) \
+	M(RETVAL) \
 
 static inline const char *op_str(enum insn_type n) {
 #define CASE(I) case I: return #I;
 	switch (n) {
-		FOREACH_INSN_TYPE(CASE);
+	FOREACH_INSN_TYPE(CASE);
 	}
 #undef CASE
 	return "unknown";
@@ -105,8 +105,8 @@ struct val {
 	enum val_class class;
 	int64_t r;
 	union {
-	int64_t v;
-	const char *s;
+		int64_t v;
+		const char *s;
 	};
 };
 
@@ -162,53 +162,53 @@ static inline bool hasnoclass(struct val v)
 static inline struct val noclass()
 {
 	return (struct val){
-		.class = NOCLASS,
-		.r = 0,
-		.v = 0,
+		       .class = NOCLASS,
+		       .r = 0,
+		       .v = 0,
 	};
 }
 
 static inline struct val reg_val(int64_t r)
 {
 	return (struct val){
-		.class = REG,
-		.r = r
+		       .class = REG,
+		       .r = r
 	};
 }
 
 static inline struct val imm_ref(const char *s)
 {
 	return (struct val){
-		.class = REF,
-		.r = 0,
-		.s = s,
+		       .class = REF,
+		       .r = 0,
+		       .s = s,
 	};
 }
 
 static inline struct val mem_val(int64_t base, int64_t offset)
 {
 	return (struct val){
-		.class = MEM,
-		.r = base,
-		.v = offset,
+		       .class = MEM,
+		       .r = base,
+		       .v = offset,
 	};
 }
 
 static inline struct val imm_val(int64_t imm, int64_t type)
 {
 	return (struct val) {
-		.class = IMM,
-		.r = type,
-		.v = imm,
+		       .class = IMM,
+		       .r = type,
+		       .v = imm,
 	};
 }
 
 static inline struct val tmp_val(int64_t t)
 {
 	return (struct val) {
-		.class = TMP,
-		.r = t,
-		.v = 0,
+		       .class = TMP,
+		       .r = t,
+		       .v = 0,
 	};
 }
 
@@ -218,34 +218,38 @@ static inline bool same_val(struct val v1, struct val v2)
 		return false;
 
 	switch (v1.class) {
-		case REG: return v1.r == v2.r;
-		case TMP: return v1.r == v2.r;
-		case IMM: return v1.v == v2.v;
-		case MEM: return v1.v == v2.v;
-		case REF: return v1.r == v2.r && v1.v == v2.v;
-		case NOCLASS: return true;
+	case REG: return v1.r == v2.r;
+	case TMP: return v1.r == v2.r;
+	case IMM: return v1.v == v2.v;
+	case MEM: return v1.v == v2.v;
+	case REF: return v1.r == v2.r && v1.v == v2.v;
+	case NOCLASS: return true;
 	}
 
 	/* shouldn't be reachable */
 	return false;
 }
 
-static inline struct insn insn_create(enum insn_type o, enum val_type t, struct val r, struct val a0, struct val a1)
+static inline struct insn insn_create(enum insn_type o, enum val_type t,
+                                      struct val r, struct val a0,
+                                      struct val a1)
 {
 	return (struct insn) {
-		.type = o,
-		.vtype = t,
-		.out = r,
-		.in = {a0, a1}
+		       .type = o,
+		       .vtype = t,
+		       .out = r,
+		       .in = {a0, a1}
 	};
 }
 
 int64_t idalloc(struct fn *f, const char *id);
 int64_t idmatch(struct fn *f, const char *id);
 
-void insadd(struct blk *b, enum insn_type o, enum val_type t, struct val r, struct val a0, struct val a1);
+void insadd(struct blk *b, enum insn_type o, enum val_type t, struct val r,
+            struct val a0, struct val a1);
 
-void finish_block(struct blk *b, enum insn_type cmp, struct val a0, struct val a1, const char *label);
+void finish_block(struct blk *b, enum insn_type cmp, struct val a0,
+                  struct val a1, const char *label);
 struct blk *new_block(struct fn *f);
 void destroy_block(struct blk *b);
 
@@ -270,40 +274,46 @@ struct label_map {
 	struct blk *b;
 };
 
-#define tmp_at(v, i)\
+#define val_at(v, i) \
+	vect_at(struct val, v, i)
+
+#define foreach_val(iter, vals) \
+	foreach_vec(iter, vals)
+
+#define tmp_at(v, i) \
 	vect_at(struct tmp_map, v, i)
 
 #define foreach_tmp(iter, tmps) \
 	foreach_vec(iter, tmps)
 
-#define blk_at(v, i)\
+#define blk_at(v, i) \
 	vect_at(struct blk *, v, i)
 
-#define blk_back(v)\
+#define blk_back(v) \
 	vect_at(struct blk *, v, vec_len(&v) - 1)
 
-#define blk_pop(v)\
+#define blk_pop(v) \
 	vect_pop(struct blk *, v)
 
-#define foreach_blk(iter, blocks)\
+#define foreach_blk(iter, blocks) \
 	foreach_vec(iter, blocks)
 
-#define foreach_blk_param(iter, block_params)\
+#define foreach_blk_param(iter, block_params) \
 	foreach_vec(iter, block_params)
 
-#define blk_param_at(v, i)\
+#define blk_param_at(v, i) \
 	vect_at(struct val, v, i)
 
-#define label_at(v, i)\
+#define label_at(v, i) \
 	vect_at(struct label_map, v, i)
 
-#define foreach_label(iter, labels)\
+#define foreach_label(iter, labels) \
 	foreach_vec(iter, labels)
 
-#define insn_at(v, i)\
+#define insn_at(v, i) \
 	vect_at(struct insn, v, i)
 
-#define foreach_insn(iter, insns)\
+#define foreach_insn(iter, insns) \
 	foreach_vec(iter, insns)
 
 #endif /* NODES_H */

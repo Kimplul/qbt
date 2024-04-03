@@ -50,7 +50,7 @@ Optimizing middle/back end for triscv.
 | x41      | a21
 | x42      | a22
 | x43      | a23
-| x44      | a24
+| x44      | tmp0
 | x45      | t7
 | x46      | t8
 | x47      | t9
@@ -68,7 +68,7 @@ Optimizing middle/back end for triscv.
 | x59      | t21
 | x60      | t22
 | x61      | t23
-| x62      | t24
+| x62      | tmp1
 | x63      | s7
 | x64      | s8
 | x65      | s9
@@ -86,4 +86,4 @@ Optimizing middle/back end for triscv.
 | x77      | s21
 | x78      | s22
 | x79      | s23
-| x80      | s24
+| x80      | tmp2
