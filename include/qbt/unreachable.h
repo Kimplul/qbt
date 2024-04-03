@@ -3,6 +3,6 @@
 
 #include <qbt/nodes.h>
 
-void unreachable(struct fn *f);
+void remove_unvisited(struct fn *f, int visited);
 
 #endif /* UNREACHABLE_H */

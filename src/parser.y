@@ -157,7 +157,15 @@ static inline void do_new_block(struct parser *p,
 	const char *label)
 {
 	finish_block(p->b, type, a0, a1, label);
-	p->b = p->b->s1 = new_block(p->f);
+	struct blk *b = new_block(p->f);
+
+	if (p->b->btype == RET)
+		p->b = b;
+	/* kind of a special case, a jump to the direct next block */
+	else if (p->b->btype == J && label == NULL)
+		p->b = p->b->s1 = p->b->s2 = b;
+	else
+		p->b = p->b->s1 = b;
 }
 
 static inline void do_insadd(struct parser *p,

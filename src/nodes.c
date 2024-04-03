@@ -48,8 +48,11 @@ struct blk *new_block(struct fn *f)
 {
 	struct blk *b = calloc(1, sizeof(struct blk));
 	b->id = ++f->nblk;
-	b->reachable = false;
+	b->visited = 0;
 	b->insns = vec_create(sizeof(struct insn));
+	b->params = vec_create(sizeof(struct val));
+	b->args1 = vec_create(sizeof(struct val));
+	b->args2 = vec_create(sizeof(struct val));
 	vec_append(&f->blks, &b);
 	return b;
 }
@@ -102,6 +105,8 @@ void finish_function(struct fn *f, const char *name)
 		}
 
 		b->s2 = m.b;
+		if (b->btype == J)
+			b->s1 = b->s2;
 	}
 
 }
@@ -136,6 +141,7 @@ void destroy_function(struct fn *f)
 void destroy_block(struct blk *b)
 {
 	vec_destroy(&b->insns);
+	vec_destroy(&b->params);
 	free(b);
 }
 
@@ -191,7 +197,16 @@ bool return_blk(struct blk *b)
 void dump_block(struct blk *b)
 {
 	printf("//\t/*** block %lld ", (long long)b->id);
-	if (b->name) printf("(%s) ", b->name);
+	if (b->name) printf("\"%s\" ", b->name);
+	
+	printf("(");
+	foreach_blk_param(pi, b->params) {
+		struct val v = blk_param_at(b->params, pi);
+		dump_val(v);
+		printf(", ");
+	}
+	printf(") ");
+
 	printf("***/\n");
 
 	foreach_insn(i, b->insns) {
@@ -204,20 +219,29 @@ void dump_block(struct blk *b)
 		return;
 	}
 
-	if (b->btype != J) {
-		assert(b->s2);
-		struct blk *s2 = b->s2;
-		printf("//\t%s ", op_str(b->btype));
-		dump_val(b->cmp[0]);
-		printf(" ");
-		dump_val(b->cmp[1]);
-		printf(" -> %lli\n", (long long)s2->id);
+	assert(b->s2);
+	struct blk *s2 = b->s2;
+	printf("//\t%s ", op_str(b->btype));
+	dump_val(b->cmp[0]);
+	printf(" ");
+	dump_val(b->cmp[1]);
+	printf(" -> %lli (", (long long)s2->id);
+	foreach_blk_param(pi, b->args2) {
+		struct val a = blk_param_at(b->args2, pi);
+		dump_val(a);
+		printf(", ");
 	}
-	printf("//\n");
+	printf("), else %lli (", (long long)b->s1->id);
+	foreach_blk_param(pi, b->args1) {
+		struct val a = blk_param_at(b->args1, pi);
+		dump_val(a);
+		printf(", ");
+	}
+	printf(")\n");
 }
 
 void dump_function(struct fn *f) {
-	printf("/*** function %s ***/\n", f->name);
+	printf("//\t/*** function %s ***/\n", f->name);
 	foreach_blk(i, f->blks) {
 		struct blk *b = blk_at(f->blks, i);
 		dump_block(b);

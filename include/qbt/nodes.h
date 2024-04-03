@@ -125,11 +125,17 @@ struct blk {
 	struct blk *s1;
 	struct blk *s2;
 	struct vec insns;
+	/* input parameters, tmp values effectively */
+	struct vec params;
+	/* arguments for s1 */
+	struct vec args1;
+	/* arguments for s2 (if any) */
+	struct vec args2;
 
 	/* used to temporarily store label targets */
 	const char *to;
-	/* used by reachability analysis */
-	bool reachable;
+	/* used by some algorithms to mark visited */
+	int visited;
 };
 
 struct fn {
@@ -206,6 +212,24 @@ static inline struct val tmp_val(int64_t t)
 	};
 }
 
+static inline bool same_val(struct val v1, struct val v2)
+{
+	if (v1.class != v2.class)
+		return false;
+
+	switch (v1.class) {
+		case REG: return v1.r == v2.r;
+		case TMP: return v1.r == v2.r;
+		case IMM: return v1.v == v2.v;
+		case MEM: return v1.v == v2.v;
+		case REF: return v1.r == v2.r && v1.v == v2.v;
+		case NOCLASS: return true;
+	}
+
+	/* shouldn't be reachable */
+	return false;
+}
+
 static inline struct insn insn_create(enum insn_type o, enum val_type t, struct val r, struct val a0, struct val a1)
 {
 	return (struct insn) {
@@ -263,6 +287,12 @@ struct label_map {
 
 #define foreach_blk(iter, blocks)\
 	foreach_vec(iter, blocks)
+
+#define foreach_blk_param(iter, block_params)\
+	foreach_vec(iter, block_params)
+
+#define blk_param_at(v, i)\
+	vect_at(struct val, v, i)
 
 #define label_at(v, i)\
 	vect_at(struct label_map, v, i)
