@@ -35,6 +35,8 @@ enum insn_type {
 	BGE,
 	BLT,
 	BGT,
+	BNZ,
+	BEZ,
 	J,
 	RET,
 	ARG,
@@ -45,6 +47,7 @@ enum insn_type {
 	/* internal */
 	SAVE,
 	RESTORE,
+	ADDR,
 };
 
 enum insn_flags {
@@ -81,6 +84,8 @@ enum insn_flags {
 	M(BGE) \
 	M(BLT) \
 	M(BGT) \
+	M(BNZ) \
+	M(BEZ) \
 	M(J) \
 	M(ARG) \
 	M(RETARG) \
@@ -88,7 +93,8 @@ enum insn_flags {
 	M(RET) \
 	M(RETVAL) \
 	M(SAVE) \
-	M(RESTORE)
+	M(RESTORE) \
+	M(ADDR)
 
 static inline const char *op_str(enum insn_type n) {
 #define CASE(I) case I: return #I;

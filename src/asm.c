@@ -152,12 +152,14 @@ static void restore_state(struct fn *f, FILE *o)
 	if (f->has_calls)
 		fprintf(o, "ld w ra, -%zi(fp)\n", ra_fploc());
 
-	fprintf(o, "ld w fp, -%zi(fp)\n", fp_fploc());
 	fprintf(o, "mv sp, fp\n");
+	fprintf(o, "ld w fp, -%zi(fp)\n", fp_fploc());
 }
 
 static void output_move(struct insn n, FILE *o)
 {
+	/** @todo should this also handle casts or would it make more sense to
+	 * add an insn specifically for that? */
 	if (!same_val(n.out, n.in[0]))
 		fprintf(o, "mv %s, %s\n",
 		        rname(n.out), rname(n.in[0]));
@@ -244,17 +246,69 @@ static void output_restore(struct insn n, FILE *o, struct fn *f)
 			rname(r), call_save_fploc(f, i));
 }
 
+static void output_store(struct insn n, FILE *o)
+{
+	struct val offset = n.out;
+	struct val b = n.in[0];
+	struct val t = n.in[1];
+
+	assert(offset.class == IMM);
+	assert(b.class == REG);
+	assert(t.class == REG);
+
+	char width = 'w';
+	if (n.vtype == I9)
+		width = 't';
+
+	int64_t off = offset.v;
+	fprintf(o, "st %c %s, %lli(%s)\n",
+			width, rname(t), (long long int)off, rname(b));
+}
+
+static void output_load(struct insn n, FILE *o)
+{
+	struct val t = n.out;
+	struct val b = n.in[0];
+	struct val offset = n.in[1];
+
+	assert(offset.class == IMM);
+	assert(b.class == REG);
+	assert(t.class == REG);
+
+	char width = 'w';
+	if (n.vtype == I9)
+		width = 't';
+
+	int64_t off = offset.v;
+	fprintf(o, "ld %c %s, %lli(%s)\n",
+			width, rname(t), (long long int)off, rname(b));
+}
+
+static void output_lt(struct insn i, FILE *o)
+{
+	assert(i.type == LT);
+	if (i.in[1].class == IMM)
+		fprintf(o, "slti %s, %s, %lli\n",
+				rname(i.out), rname(i.in[0]), (long long)i.in[1].v);
+	else
+		fprintf(o, "slt %s, %s, %s\n",
+				rname(i.out), rname(i.in[0]), rname(i.in[1]));
+}
+
 static void output_insn(struct insn n, FILE *o, struct fn *f)
 {
 	/* one insn directly matches one or more assembly instructions,
 	 * we may be missing out on certain optimizations by not using some kind
 	 * of matching here but good enough for now */
 	switch (n.type) {
+	case LT: output_lt(n, o); break;
 	case MOVE: output_move(n, o); break;
 	case ADD: output_add(n, o); break;
 	case SUB: output_sub(n, o); break;
 	case COPY: output_copy(n, o); break;
 	case CALL: output_call(n, o); break;
+	case STORE: output_store(n, o); break;
+	case LOAD: output_load(n, o); break;
 	case SAVE: output_save(n, o, f); break;
 	case RESTORE: output_restore(n, o, f); break;
 	default: fprintf(stderr, "unimplemented insn: %s\n", op_str(n.type));
@@ -275,7 +329,29 @@ static void output_ble(struct blk *b, struct fn *f, FILE *o)
 	assert(b->s2);
 	fprintf(o, "ble %s, %s, .%s.%lli\n",
 	        rname(b->cmp[0]), rname(b->cmp[1]),
-	        f->name, (long long int)b->s2->id);
+	        f->name, (long long)b->s2->id);
+}
+
+static void output_bne(struct blk *b, struct fn *f, FILE *o)
+{
+	assert(b->s2);
+	fprintf(o, "bne %s, %s, .%s.%lli\n",
+			rname(b->cmp[0]), rname(b->cmp[1]),
+			f->name, (long long)b->s2->id);
+}
+
+static void output_bnz(struct blk *b, struct fn *f, FILE *o)
+{
+	assert(b->s2);
+	fprintf(o, "bne %s, x0, .%s.%lli\n",
+			rname(b->cmp[0]), f->name, (long long)b->s2->id);
+}
+
+static void output_bez(struct blk *b, struct fn *f, FILE *o)
+{
+	assert(b->s2);
+	fprintf(o, "beq %s, x0, .%s.%lli\n",
+			rname(b->cmp[0]), f->name, (long long)b->s2->id);
 }
 
 static void output_ret(struct fn *f, FILE *o)
@@ -290,7 +366,7 @@ static void output_j(struct blk *b, struct fn *f, FILE *o)
 	if (!b->to || b->s1 == b->s2)
 		return;
 
-	fprintf(o, "j .%s.%lli\n", f->name, (long long int)b->s2->id);
+	fprintf(o, "jal x0, .%s.%lli\n", f->name, (long long int)b->s2->id);
 }
 
 static void output_branch(struct blk *b, struct fn *f, FILE *o)
@@ -300,6 +376,9 @@ static void output_branch(struct blk *b, struct fn *f, FILE *o)
 	case J:   output_j(b, f, o); break;
 	case BLT: output_blt(b, f, o); break;
 	case BLE: output_ble(b, f, o); break;
+	case BNE: output_bne(b, f, o); break;
+	case BNZ: output_bnz(b, f, o); break;
+	case BEZ: output_bez(b, f, o); break;
 	default: fprintf(stderr, "unimplemented branch: %s\n",
 		         op_str(b->btype));
 		abort();

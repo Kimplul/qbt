@@ -107,8 +107,6 @@ void finish_function(struct fn *f, const char *name)
 		}
 
 		b->s2 = m.b;
-		if (b->btype == J)
-			b->s1 = b->s2;
 	}
 
 }

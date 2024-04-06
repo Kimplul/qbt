@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <qbt/ssa.h>
 #include <qbt/unreachable.h>
 
 static void add_val(struct vec *map, struct val v)
@@ -221,7 +220,7 @@ static size_t rename_temps(struct blk *b, size_t i)
 	return i;
 }
 
-void ssa(struct fn *f)
+size_t ssa(struct fn *f)
 {
 	/* do a depth-first traversal of blocks, mark locations within as either
 	 * generated (i.e. we assign something to the register) or required
@@ -236,4 +235,6 @@ void ssa(struct fn *f)
 		struct blk *b = blk_at(f->blks, bi);
 		i = rename_temps(b, i);
 	}
+
+	return i;
 }

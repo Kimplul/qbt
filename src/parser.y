@@ -64,7 +64,6 @@
 %token LEXI9 "i9"
 %token LEXI27 "i27"
 
-%nterm <val> mem_loc
 %nterm <str> mem_base
 %nterm <integer> mem_off
 %nterm <integer> int
@@ -262,8 +261,7 @@ type
 	| "i27" { $$ = I27; }
 
 const
-	: "i9" int
-	| "i27" int
+	: int
 
 consts
 	: const "," consts
@@ -307,8 +305,8 @@ arg
 	: id {
 		$$ = IDTOVAL($[id]);
 	}
-	| type int {
-		$$ = imm_val($[int], $[type]);
+	| int {
+		$$ = imm_val($[int], NOTYPE);
 	}
 
 arith
@@ -359,17 +357,19 @@ mem_base
 mem_off
 	: int
 
-mem_loc
-	: "(" mem_base mem_off ")" {$$ = mem_val(IDTOVAL($[mem_base]).r, $[mem_off]);}
-
 mem
-	: type id "<<" mem_loc {
-		struct val t = IDALLOC($[id]);
-		INSADD(LOAD, $[type], t, $[mem_loc], noclass());
+	: type id "<<" mem_base mem_off {
+		struct val t = IDTOVAL($[id]);
+		struct val b = IDTOVAL($[mem_base]);
+		struct val o = imm_val($[mem_off], I27);
+		INSADD(LOAD, $[type], t, b, o);
 	}
-	| id ">>" type mem_loc {
-		struct val t = IDALLOC($[id]);
-		INSADD(STORE, $[type], noclass(), t, $[mem_loc]);
+	| id ">>" type mem_base mem_off {
+		struct val t = IDTOVAL($[id]);
+		struct val b = IDTOVAL($[mem_base]);
+		struct val o = imm_val($[mem_off], I27);
+		/* really not a huge fan or 'reusing' the output slot... */
+		INSADD(STORE, $[type], o, b, t);
 	}
 
 stack
@@ -443,6 +443,12 @@ branch
 	}
 	| arg ">"  arg "->" local {
 		NEW_BLOCK(BGT, $1, $3, $[local]);
+	}
+	| arg "->" local {
+		NEW_BLOCK(BNZ, $[arg], noclass(), $[local]);
+	}
+	| "!" arg "->" local {
+		NEW_BLOCK(BEZ, $[arg], noclass(), $[local]);
 	}
 	| "->" local {
 		NEW_BLOCK(J, noclass(), noclass(), $[local]);

@@ -58,7 +58,7 @@ void vec_insert(struct vec *v, void *n, size_t i)
 {
 	assert(i <= vec_len(v));
 	if (i == vec_len(v))
-		vec_append(v, n);
+		return vec_append(v, n);
 
 	v->n++;
 	if (v->n >= v->s) {

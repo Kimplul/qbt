@@ -387,35 +387,33 @@ static bool callee_save(struct val r)
 	return false;
 }
 
-static void insn_insert_before_call(struct blk *b, struct insn save, size_t pos)
+static void insn_insert_before_call(struct blk *b, struct insn save, ssize_t pos)
 {
 	assert((insn_at(b->insns, pos)).type == CALL);
 	struct insn setup;
 	do {
-		/* the first instruction in a block can be part of a call setup */
-		if (pos == 0)
+		if (pos < 0)
 			break;
 
-		pos--;
 		setup = insn_at(b->insns, pos);
+		pos--;
 	} while (has_insn_flag(setup, CALL_SETUP));
 
-	/* the do-while loop technically went one too far, fix */
-	insn_insert(b, save, pos == 0 ? 0 : pos + 1);
+	insn_insert(b, save, pos + 1);
 }
 
 static void insn_insert_after_call(struct blk *b, struct insn restore, size_t pos)
 {
 	assert((insn_at(b->insns, pos)).type == CALL);
-	size_t max = vec_len(&b->insns) - 1;
+	size_t max = vec_len(&b->insns);
 
 	struct insn setup;
 	do {
 		if (pos == max)
 			break;
 
-		pos++;
 		setup = insn_at(b->insns, pos);
+		pos++;
 	} while (has_insn_flag(setup, CALL_TEARDOWN));
 
 	insn_insert(b, restore, pos);
@@ -497,14 +495,22 @@ void regalloc(struct fn *f)
 		struct blk *b = blk_at(f->blks, bi);
 		vec_reset(&lifetimes);
 		vec_reset(&calls);
+
 		/** @todo collect hints from args/params */
 		collect_lifetimes(b, &hints, &lifetimes, &rmap, &calls);
-		f->max_callee_save = build_rmap(&hints, &lifetimes, &rmap);
+		size_t max_callee_save = build_rmap(&hints, &lifetimes, &rmap);
+
 		do_rewrites(b, &rmap);
-		f->max_call_save = do_call_saves(b, &lifetimes, &rmap, &calls);
+		size_t max_call_save = do_call_saves(b, &lifetimes, &rmap, &calls);
 		/** @todo forward_hints(b, &hints, &rmap) */
 		if (vec_len(&calls) != 0)
 			f->has_calls = true;
+
+		if (max_callee_save > f->max_callee_save)
+			f->max_callee_save = max_callee_save;
+
+		if (max_call_save > f->max_call_save)
+			f->max_call_save = max_call_save;
 	}
 
 	vec_destroy(&calls);

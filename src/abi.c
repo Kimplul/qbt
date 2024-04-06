@@ -102,6 +102,10 @@ void abi0(struct fn *f)
 				struct insn a = rewrite_retarg(n);
 				insn_at(b->insns, i) = a;
 			}
+			else if (n.type == CALL) {
+				set_insn_flags(&n, CALL_SETUP | CALL_TEARDOWN);
+				insn_at(b->insns, i) = n;
+			}
 		}
 	}
 }

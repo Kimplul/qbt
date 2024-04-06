@@ -2,7 +2,6 @@
 
 #include <qbt/opt.h>
 #include <qbt/regalloc.h>
-#include <qbt/ssa.h>
 #include <qbt/abi.h>
 
 void optimize(struct fn *f)
@@ -11,8 +10,12 @@ void optimize(struct fn *f)
 	dump_function(f);
 
 	/* unreachability is done in several steps I guess */
-	ssa(f);
+	size_t ri = ssa(f);
 	printf("\n// after SSA:\n");
+	dump_function(f);
+
+	correct(f, ri);
+	printf("\n// corrections:\n");
 	dump_function(f);
 
 	abi0(f);
