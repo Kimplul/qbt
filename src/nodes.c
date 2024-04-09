@@ -7,9 +7,9 @@
 #include <qbt/vec.h>
 
 void insadd(struct blk *b, enum insn_type o, enum val_type t, struct val r,
-            struct val a0, struct val a1)
+            struct val a0, struct val a1, long long v)
 {
-	struct insn i = insn_create(o, t, r, a0, a1);
+	struct insn i = insn_create(o, t, r, a0, a1, v);
 	vec_append(&b->insns, &i);
 }
 

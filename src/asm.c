@@ -392,7 +392,7 @@ static void output_moves(struct vec *params, struct vec *args, FILE *o)
 	foreach_blk_param(pi, *params) {
 		struct val p = blk_param_at(*params, pi);
 		struct val a = blk_param_at(*args, pi);
-		struct insn i = insn_create(MOVE, NOTYPE, p, a, noclass());
+		struct insn i = insn_create(MOVE, NOTYPE, p, a, noclass(), 0);
 		output_move(i, o);
 	}
 }

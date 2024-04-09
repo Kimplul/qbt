@@ -133,6 +133,7 @@ struct insn {
 	struct val out;
 	struct val in[2];
 	enum insn_flags flags;
+	long long v;
 };
 
 static inline void set_insn_flags(struct insn *i, enum insn_flags flags)
@@ -261,13 +262,15 @@ static inline bool same_val(struct val v1, struct val v2)
 
 static inline struct insn insn_create(enum insn_type o, enum val_type t,
                                       struct val r, struct val a0,
-                                      struct val a1)
+                                      struct val a1,
+				      long long v)
 {
 	return (struct insn) {
 		       .type = o,
 		       .vtype = t,
 		       .out = r,
-		       .in = {a0, a1}
+		       .in = {a0, a1},
+		       .v = v,
 	};
 }
 
@@ -275,7 +278,7 @@ int64_t idalloc(struct fn *f, const char *id);
 int64_t idmatch(struct fn *f, const char *id);
 
 void insadd(struct blk *b, enum insn_type o, enum val_type t, struct val r,
-            struct val a0, struct val a1);
+            struct val a0, struct val a1, long long v);
 
 void finish_block(struct blk *b, enum insn_type cmp, struct val a0,
                   struct val a1, const char *label);

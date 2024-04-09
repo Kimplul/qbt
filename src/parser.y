@@ -172,9 +172,10 @@ static inline void do_insadd(struct parser *p,
 	enum val_type t,
 	struct val r,
 	struct val a0,
-	struct val a1)
+	struct val a1,
+	long long v)
 {
-	insadd(p->b, cmp, t, r, a0, a1);
+	insadd(p->b, cmp, t, r, a0, a1, v);
 }
 
 static inline void do_new_function(struct parser *p, const char *name)
@@ -220,8 +221,8 @@ static inline void do_ins_replace(struct parser *p, size_t i, struct insn n)
 #define CUR_INSN()\
 	do_cur_insn(parser)
 
-#define INSADD(o, t, r, a0, a1)\
-	do_insadd(parser, o, t, r, a0, a1)
+#define INSADD(o, t, r, a0, a1, v)\
+	do_insadd(parser, o, t, r, a0, a1, v)
 
 #define IDALLOC(i)\
 	do_idalloc(parser, i)
@@ -278,7 +279,7 @@ data
 param
 	: type id {
 		struct val t = IDALLOC($[id]);
-		INSADD(PARAM, $[type], t, noclass(), imm_val(parser->idx++, I27));
+		INSADD(PARAM, $[type], t, noclass(), imm_val(parser->idx++, I27), 0);
 	}
 
 params
@@ -312,23 +313,23 @@ arg
 arith
 	: type id "=" arg "+" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(ADD, $[type], t, $4, $6);
+		INSADD(ADD, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg "-" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(SUB, $[type], t, $4, $6);
+		INSADD(SUB, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg "*" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(MUL, $[type], t, $4, $6);
+		INSADD(MUL, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg "/" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(DIV, $[type], t, $4, $6);
+		INSADD(DIV, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg "%" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(REM, $[type], t, $4, $6);
+		INSADD(REM, $[type], t, $4, $6, 0);
 	}
 
 addr
@@ -337,18 +338,18 @@ addr
 imm
 	: type id "=" int {
 		struct val t = IDALLOC($[id]);
-		INSADD(COPY, $[type], t, imm_val($[int], I27), noclass());
+		INSADD(COPY, $[type], t, imm_val($[int], I27), noclass(), 0);
 	}
 	| type id "=" addr {
 		struct val t = IDALLOC($[id]);
-		INSADD(COPY, $[type], t, imm_ref($[addr]), noclass());
+		INSADD(COPY, $[type], t, imm_ref($[addr]), noclass(), 0);
 	}
 
 move
 	: type id "=" id {
 		struct val t = IDALLOC($2);
 		struct val f = IDTOVAL($4);
-		INSADD(MOVE, $[type], t, f, noclass());
+		INSADD(MOVE, $[type], t, f, noclass(), 0);
 	}
 
 mem_base
@@ -361,65 +362,63 @@ mem
 	: type id "<<" mem_base mem_off {
 		struct val t = IDTOVAL($[id]);
 		struct val b = IDTOVAL($[mem_base]);
-		struct val o = imm_val($[mem_off], I27);
-		INSADD(LOAD, $[type], t, b, o);
+		INSADD(LOAD, $[type], t, b, noclass(), $[mem_off]);
 	}
 	| id ">>" type mem_base mem_off {
 		struct val t = IDTOVAL($[id]);
 		struct val b = IDTOVAL($[mem_base]);
-		struct val o = imm_val($[mem_off], I27);
 		/* really not a huge fan or 'reusing' the output slot... */
-		INSADD(STORE, $[type], o, b, t);
+		INSADD(STORE, $[type], noclass(), b, t, $[mem_off]);
 	}
 
 stack
 	: type id "=" "alloc" int {
 		struct val t = IDALLOC($[id]);
-		INSADD(ALLOC, $[type], t, imm_val($[int], I27), noclass());
+		INSADD(ALLOC, $[type], t, noclass(), noclass(), $[int]);
 	}
 
 cond
 	: type id "=" arg "==" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(EQ, $[type], t, $4, $6);
+		INSADD(EQ, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg "!=" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(NE, $[type], t, $4, $6);
+		INSADD(NE, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg "<=" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(LE, $[type], t, $4, $6);
+		INSADD(LE, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg ">=" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(GE, $[type], t, $4, $6);
+		INSADD(GE, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg "<"  arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(LT, $[type], t, $4, $6);
+		INSADD(LT, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg ">"  arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(GT, $[type], t, $4, $6);
+		INSADD(GT, $[type], t, $4, $6, 0);
 	}
 
 logic
 	: type id "=" "!" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(NOT, $[type], t, $5, noclass());
+		INSADD(NOT, $[type], t, $5, noclass(), 0);
 	}
 	| type id "=" "-" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(NEG, $[type], t, $5, noclass());
+		INSADD(NEG, $[type], t, $5, noclass(), 0);
 	}
 	| type id "=" arg "<<" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(LSHIFT, $[type], t, $4, $6);
+		INSADD(LSHIFT, $[type], t, $4, $6, 0);
 	}
 	| type id "=" arg ">>" arg {
 		struct val t = IDALLOC($[id]);
-		INSADD(RSHIFT, $[type], t, $4, $6);
+		INSADD(RSHIFT, $[type], t, $4, $6, 0);
 	}
 
 local
@@ -461,7 +460,7 @@ ret
 
 call_ret
 	: ret {
-		INSADD(RETVAL, NOTYPE, $[ret], noclass(), imm_val(parser->idx++, I27));
+		INSADD(RETVAL, NOTYPE, $[ret], noclass(), imm_val(parser->idx++, I27), 0);
 	}
 
 call_rets
@@ -474,8 +473,8 @@ opt_call_rets
 	| {}
 
 call_arg
-	: arg {
-		INSADD(ARG, NOTYPE, noclass(), $[arg], imm_val(parser->idx++, I27));
+	: type arg {
+		INSADD(ARG, $[type], noclass(), $[arg], imm_val(parser->idx++, I27), 0);
 	}
 
 call_args
@@ -494,7 +493,7 @@ reset_index
 placeholder
 	: {
 		$$ = CUR_INSN();
-		INSADD(CALL, NOTYPE, noclass(), noclass(), noclass());
+		INSADD(CALL, NOTYPE, noclass(), noclass(), noclass(), 0);
 	}
 
 call
@@ -503,18 +502,18 @@ call
 		/* kind of hacky but works */
 		INS_REPLACE($[placeholder],
 			insn_create(CALL, NOTYPE,
-				noclass(), imm_ref($[addr]), noclass()));
+				noclass(), imm_ref($[addr]), noclass(), 0));
 	}
 	| id reset_index "(" opt_call_args ")"
 	  "=>" placeholder reset_index "(" opt_call_rets ")" {
 		INS_REPLACE($[placeholder],
 			insn_create(CALL, NOTYPE,
-				noclass(), IDTOVAL($[id]), noclass()));
+				noclass(), IDTOVAL($[id]), noclass(), 0));
 	  }
 
 proc_ret
 	: id {
-		INSADD(RETARG, NOTYPE, noclass(), IDTOVAL($[id]), imm_val(parser->idx++, I27));
+		INSADD(RETARG, NOTYPE, noclass(), IDTOVAL($[id]), imm_val(parser->idx++, I27), 0);
 	}
 
 proc_rets

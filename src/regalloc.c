@@ -447,7 +447,9 @@ static size_t do_call_saves(struct blk *b, struct vec *lifetimes, struct vec *rm
 				continue;
 
 			struct insn save = insn_create(SAVE, NOTYPE,
-							noclass(), r, imm_val(counter, I27));
+							noclass(), r,
+							imm_val(counter, I27), 0);
+
 			insn_insert_before_call(b, save, call_pos + offset - 1);
 			offset++;
 			counter++;
@@ -465,7 +467,9 @@ static size_t do_call_saves(struct blk *b, struct vec *lifetimes, struct vec *rm
 			/* hmm, restore should maybe put r as its output to be
 			 * more consistent... */
 			struct insn restore = insn_create(RESTORE, NOTYPE,
-							noclass(), r, imm_val(counter, I27));
+							noclass(), r,
+							imm_val(counter, I27), 0);
+
 			insn_insert_after_call(b, restore, call_pos - 1);
 			counter++;
 			offset++;

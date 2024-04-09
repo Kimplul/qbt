@@ -3,7 +3,7 @@
 static size_t spill_ref(struct blk *b, size_t ii, struct insn i, size_t idx, size_t ri)
 {
 	struct val tmp = tmp_val(ri++);
-	struct insn new = insn_create(ADDR, I27, tmp, i.in[idx], noclass());
+	struct insn new = insn_create(ADDR, I27, tmp, i.in[idx], noclass(), 0);
 	i.in[idx] = tmp;
 	insn_at(b->insns, ii) = i;
 	insn_insert(b, new, ii);
@@ -13,7 +13,7 @@ static size_t spill_ref(struct blk *b, size_t ii, struct insn i, size_t idx, siz
 static size_t spill_imm(struct blk *b, size_t ii, struct insn i, size_t idx, size_t ri)
 {
 	struct val tmp = tmp_val(ri++);
-	struct insn new = insn_create(COPY, I27, tmp, i.in[idx], noclass());
+	struct insn new = insn_create(COPY, I27, tmp, i.in[idx], noclass(), 0);
 	i.in[idx] = tmp;
 	insn_at(b->insns, ii) = i;
 	insn_insert(b, new, ii);
@@ -125,13 +125,13 @@ void correct(struct fn *f, size_t ri)
 
 		if (b->cmp[0].class == IMM) {
 			struct val t = tmp_val(ri++);
-			insadd(b, COPY, I27, t, b->cmp[0], noclass());
+			insadd(b, COPY, I27, t, b->cmp[0], noclass(), 0);
 			b->cmp[0] = t;
 		}
 
 		if (b->cmp[1].class == IMM) {
 			struct val t = tmp_val(ri++);
-			insadd(b, COPY, I27, t, b->cmp[0], noclass());
+			insadd(b, COPY, I27, t, b->cmp[0], noclass(), 0);
 			b->cmp[1] = t;
 		}
 	}

@@ -21,7 +21,7 @@ static struct insn rewrite_param(struct insn n)
 	assert(nth_param >= 0 && nth_param < 25
 	       && "stack argument passing not yet supported");
 
-	return insn_create(MOVE, I27, n.out, nth_ar(nth_param), noclass());
+	return insn_create(MOVE, I27, n.out, nth_ar(nth_param), noclass(), 0);
 }
 
 static struct insn rewrite_retval(struct insn n)
@@ -30,7 +30,7 @@ static struct insn rewrite_retval(struct insn n)
 	assert(n.in[1].class == IMM);
 	int64_t nth_retval = n.in[1].v;
 	assert(nth_retval >= 0 && nth_retval < 25);
-	n = insn_create(MOVE, I27, n.out, nth_ar(nth_retval), noclass());
+	n = insn_create(MOVE, I27, n.out, nth_ar(nth_retval), noclass(), 0);
 	set_insn_flags(&n, CALL_TEARDOWN);
 	return n;
 }
@@ -44,13 +44,13 @@ static struct insn rewrite_arg(struct insn n)
 
 	if (n.in[0].class == TMP || n.in[0].class == REG) {
 		n = insn_create(MOVE, I27, nth_ar(nth_arg), n.in[0],
-		                   noclass());
+		                   noclass(), 0);
 		set_insn_flags(&n, CALL_SETUP);
 		return n;
 	}
 	else if (n.in[0].class == IMM || n.in[0].class == REF) {
 		n = insn_create(COPY, I27, nth_ar(nth_arg), n.in[0],
-		                   noclass());
+		                   noclass(), 0);
 		set_insn_flags(&n, CALL_SETUP);
 		return n;
 	}
@@ -68,10 +68,11 @@ static struct insn rewrite_retarg(struct insn n)
 
 	if (n.in[0].class == TMP || n.in[0].class == REG)
 		return insn_create(MOVE, I27, nth_ar(nth_arg), n.in[0],
-		                   noclass());
+		                   noclass(), 0);
+
 	else if (n.in[0].class == IMM || n.in[0].class == REF)
 		return insn_create(COPY, I27, nth_ar(nth_arg), n.in[0],
-		                   noclass());
+		                   noclass(), 0);
 
 	assert("illegal retval type");
 	abort();

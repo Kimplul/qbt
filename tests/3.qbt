@@ -6,7 +6,7 @@ main()
 
 top:
 	i27 sum = sum + i;
-	i27 i = i + i27 1;
+	i27 i = i + 1;
 	i < max -> top;
 	&_putchar(sum) => ();
 	=> ();
