@@ -124,6 +124,8 @@ STRING		\"(\\.|[^"\\])*\"
 "->"		{return LEXTHINARROW;}
 ">>"		{return LEXTO;}
 "<<"		{return LEXFROM;}
+"<<*"		{return LEXBLIT;}
+"^"		{return LEXALLOC;}
 
 "i9"		{return LEXI9;}
 "i27"		{return LEXI27;}

@@ -59,7 +59,9 @@
 %token LEXTHINARROW "->"
 %token LEXTO ">>"
 %token LEXFROM "<<"
+%token LEXBLIT "<<*"
 %token LEXSEMI ";"
+%token LEXALLOC "^"
 
 %token LEXI9 "i9"
 %token LEXI27 "i27"
@@ -370,9 +372,14 @@ mem
 		/* really not a huge fan or 'reusing' the output slot... */
 		INSADD(STORE, $[type], noclass(), b, t, $[mem_off]);
 	}
+	| id "<<*" int id {
+		struct val t = IDTOVAL($1);
+		struct val f = IDTOVAL($4);
+		INSADD(BLIT, NOTYPE, noclass(), t, f, $[int]);
+	}
 
 stack
-	: type id "=" "alloc" int {
+	: type id "=" "^" int {
 		struct val t = IDALLOC($[id]);
 		INSADD(ALLOC, $[type], t, noclass(), noclass(), $[int]);
 	}

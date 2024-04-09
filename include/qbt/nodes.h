@@ -19,6 +19,7 @@ enum insn_type {
 	ALLOC,
 	COPY,
 	MOVE,
+	BLIT,
 	EQ,
 	NE,
 	LE,
@@ -68,6 +69,7 @@ enum insn_flags {
 	M(ALLOC) \
 	M(COPY) \
 	M(MOVE) \
+	M(BLIT) \
 	M(EQ) \
 	M(NE) \
 	M(LE) \
