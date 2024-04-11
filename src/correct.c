@@ -1,6 +1,7 @@
 #include <qbt/opt.h>
 
-static size_t spill_ref(struct blk *b, size_t ii, struct insn i, size_t idx, size_t ri)
+static size_t spill_ref(struct blk *b, size_t ii, struct insn i, size_t idx,
+                        size_t ri)
 {
 	struct val tmp = tmp_val(ri++);
 	struct insn new = insn_create(ADDR, I27, tmp, i.in[idx], noclass(), 0);
@@ -10,7 +11,8 @@ static size_t spill_ref(struct blk *b, size_t ii, struct insn i, size_t idx, siz
 	return ri;
 }
 
-static size_t spill_imm(struct blk *b, size_t ii, struct insn i, size_t idx, size_t ri)
+static size_t spill_imm(struct blk *b, size_t ii, struct insn i, size_t idx,
+                        size_t ri)
 {
 	struct val tmp = tmp_val(ri++);
 	struct insn new = insn_create(COPY, I27, tmp, i.in[idx], noclass(), 0);
@@ -37,7 +39,8 @@ static size_t correct_arith(struct blk *b, size_t ii, struct insn i, size_t ri)
 	return ri;
 }
 
-static size_t correct_positional_arith(struct blk *b, size_t ii, struct insn i, size_t ri)
+static size_t correct_positional_arith(struct blk *b, size_t ii, struct insn i,
+                                       size_t ri)
 {
 	if (i.in[0].class == IMM)
 		return spill_imm(b, ii, i, 0, ri);
@@ -56,7 +59,8 @@ static size_t correct_branch(struct blk *b, size_t ii, struct insn i, size_t ri)
 	return ri;
 }
 
-static size_t correct_relations(struct blk *b, size_t ii, struct insn i, size_t ri)
+static size_t correct_relations(struct blk *b, size_t ii, struct insn i,
+                                size_t ri)
 {
 	if (i.in[0].class == IMM)
 		return spill_imm(b, ii, i, 0, ri);

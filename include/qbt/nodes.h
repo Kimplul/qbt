@@ -57,45 +57,45 @@ enum insn_flags {
 };
 
 #define FOREACH_INSN_TYPE(M) \
-	M(ADD) \
-	M(SUB) \
-	M(MUL) \
-	M(DIV) \
-	M(REM) \
-	M(CALL) \
-	M(LABEL) \
-	M(STORE) \
-	M(LOAD) \
-	M(ALLOC) \
-	M(COPY) \
-	M(MOVE) \
-	M(BLIT) \
-	M(EQ) \
-	M(NE) \
-	M(LE) \
-	M(GE) \
-	M(LT) \
-	M(GT) \
-	M(NOT) \
-	M(NEG) \
-	M(LSHIFT) \
-	M(RSHIFT) \
-	M(BEQ) \
-	M(BNE) \
-	M(BLE) \
-	M(BGE) \
-	M(BLT) \
-	M(BGT) \
-	M(BNZ) \
-	M(BEZ) \
-	M(J) \
-	M(ARG) \
-	M(RETARG) \
-	M(PARAM) \
-	M(RET) \
-	M(RETVAL) \
-	M(SAVE) \
-	M(RESTORE) \
+	M(ADD)               \
+	M(SUB)               \
+	M(MUL)               \
+	M(DIV)               \
+	M(REM)               \
+	M(CALL)              \
+	M(LABEL)             \
+	M(STORE)             \
+	M(LOAD)              \
+	M(ALLOC)             \
+	M(COPY)              \
+	M(MOVE)              \
+	M(BLIT)              \
+	M(EQ)                \
+	M(NE)                \
+	M(LE)                \
+	M(GE)                \
+	M(LT)                \
+	M(GT)                \
+	M(NOT)               \
+	M(NEG)               \
+	M(LSHIFT)            \
+	M(RSHIFT)            \
+	M(BEQ)               \
+	M(BNE)               \
+	M(BLE)               \
+	M(BGE)               \
+	M(BLT)               \
+	M(BGT)               \
+	M(BNZ)               \
+	M(BEZ)               \
+	M(J)                 \
+	M(ARG)               \
+	M(RETARG)            \
+	M(PARAM)             \
+	M(RET)               \
+	M(RETVAL)            \
+	M(SAVE)              \
+	M(RESTORE)           \
 	M(ADDR)
 
 static inline const char *op_str(enum insn_type n) {
@@ -265,7 +265,7 @@ static inline bool same_val(struct val v1, struct val v2)
 static inline struct insn insn_create(enum insn_type o, enum val_type t,
                                       struct val r, struct val a0,
                                       struct val a1,
-				      long long v)
+                                      long long v)
 {
 	return (struct insn) {
 		       .type = o,

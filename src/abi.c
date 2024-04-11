@@ -44,13 +44,13 @@ static struct insn rewrite_arg(struct insn n)
 
 	if (n.in[0].class == TMP || n.in[0].class == REG) {
 		n = insn_create(MOVE, I27, nth_ar(nth_arg), n.in[0],
-		                   noclass(), 0);
+		                noclass(), 0);
 		set_insn_flags(&n, CALL_SETUP);
 		return n;
 	}
 	else if (n.in[0].class == IMM || n.in[0].class == REF) {
 		n = insn_create(COPY, I27, nth_ar(nth_arg), n.in[0],
-		                   noclass(), 0);
+		                noclass(), 0);
 		set_insn_flags(&n, CALL_SETUP);
 		return n;
 	}

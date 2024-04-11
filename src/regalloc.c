@@ -11,7 +11,7 @@
  * free to make sure function calls in loops etc. don't have to shuffle
  * registers around as much. The preferred order can probably be bikeshedded to death,
  * eventually would be kind of cool to add some heuristic for which category
- * might be best suited for a specific location. 
+ * might be best suited for a specific location.
  * One possible one would be that callee-save should be preferred if the
  * lifetime overlaps a function call? */
 static const int64_t tr_map[] = {
@@ -112,7 +112,8 @@ static void add_use(struct vec *lifetimes, struct val v, size_t i)
 }
 
 static void collect_lifetimes(struct blk *b, struct vec *hints,
-                              struct vec *lifetimes, struct vec *rmap, struct vec *calls)
+                              struct vec *lifetimes, struct vec *rmap,
+                              struct vec *calls)
 {
 	foreach_blk_param(pi, b->params) {
 		struct val v = blk_param_at(b->params, pi);
@@ -146,6 +147,9 @@ static void collect_lifetimes(struct blk *b, struct vec *hints,
 		}
 
 		/* collect calls, to be used later */
+		/* could and probably should mark currently alive registers as
+		 * 'stored' or something to avoid having to spill a million
+		 * temporaries */
 		if (i.type == CALL)
 			vec_append(calls, &pos);
 
@@ -158,6 +162,8 @@ static void collect_lifetimes(struct blk *b, struct vec *hints,
 	if (b->cmp[1].class == TMP)
 		add_use(lifetimes, b->cmp[1], pos);
 
+	/* might also be a good idea to add equivalency chains, i.e. map block
+	 * args to block params */
 	foreach_blk_param(pi, b->args1) {
 		struct val v = blk_param_at(b->args1, pi);
 		add_use(lifetimes, v, pos);
@@ -169,17 +175,20 @@ static void collect_lifetimes(struct blk *b, struct vec *hints,
 	}
 }
 
-static  void build_active_between(struct vec *active, struct vec *lifetimes, size_t start, size_t end)
+static void build_active_between(struct vec *active, struct vec *lifetimes,
+                                 size_t start, size_t end)
 {
 	foreach_lifetime(li, *lifetimes) {
 		struct lifetime l = lifetime_at(*lifetimes, li);
 		if (l.used == 0)
 			continue;
 
-		if (l.end < start)
+		/* start == end still counts as dead and we're free to reuse the
+		 * reg */
+		if (l.end <= start)
 			continue;
 
-		if (l.start > end)
+		if (l.start >= end)
 			continue;
 
 		vec_append(active, &l);
@@ -241,37 +250,37 @@ static size_t highest_sreg(struct val f)
 {
 	assert(f.class == REG);
 	switch (f.r) {
-		case RS0: return 1;
-		case RS1: return 2;
-		case RS2: return 3;
-		case RS3: return 4;
-		case RS4: return 5;
-		case RS5: return 6;
-		case RS6: return 7;
-		case RS7: return 8;
-		case RS8: return 9;
-		case RS9: return 10;
-		case RS10: return 11;
-		case RS11: return 12;
-		case RS12: return 13;
-		case RS13: return 14;
-		case RS14: return 15;
-		case RS15: return 16;
-		case RS16: return 17;
-		case RS17: return 18;
-		case RS18: return 19;
-		case RS19: return 20;
-		case RS20: return 21;
-		case RS21: return 22;
-		case RS22: return 23;
-		case RS23: return 24;
+	case RS0: return 1;
+	case RS1: return 2;
+	case RS2: return 3;
+	case RS3: return 4;
+	case RS4: return 5;
+	case RS5: return 6;
+	case RS6: return 7;
+	case RS7: return 8;
+	case RS8: return 9;
+	case RS9: return 10;
+	case RS10: return 11;
+	case RS11: return 12;
+	case RS12: return 13;
+	case RS13: return 14;
+	case RS14: return 15;
+	case RS15: return 16;
+	case RS16: return 17;
+	case RS17: return 18;
+	case RS18: return 19;
+	case RS19: return 20;
+	case RS20: return 21;
+	case RS21: return 22;
+	case RS22: return 23;
+	case RS23: return 24;
 	}
 
 	return 0;
 }
 
 static size_t build_rmap(struct vec *hints, struct vec *lifetimes,
-                       struct vec *rmap)
+                         struct vec *rmap)
 {
 	size_t max_callee_save = 0;
 	struct vec active = vec_create(sizeof(struct lifetime));
@@ -358,36 +367,37 @@ static bool callee_save(struct val r)
 {
 	assert(r.class == REG);
 	switch (r.r) {
-		case RS0: return true;
-		case RS1: return true;
-		case RS2: return true;
-		case RS3: return true;
-		case RS4: return true;
-		case RS5: return true;
-		case RS6: return true;
-		case RS7: return true;
-		case RS8: return true;
-		case RS9: return true;
-		case RS10: return true;
-		case RS11: return true;
-		case RS12: return true;
-		case RS13: return true;
-		case RS14: return true;
-		case RS15: return true;
-		case RS16: return true;
-		case RS17: return true;
-		case RS18: return true;
-		case RS19: return true;
-		case RS20: return true;
-		case RS21: return true;
-		case RS22: return true;
-		case RS23: return true;
+	case RS0: return true;
+	case RS1: return true;
+	case RS2: return true;
+	case RS3: return true;
+	case RS4: return true;
+	case RS5: return true;
+	case RS6: return true;
+	case RS7: return true;
+	case RS8: return true;
+	case RS9: return true;
+	case RS10: return true;
+	case RS11: return true;
+	case RS12: return true;
+	case RS13: return true;
+	case RS14: return true;
+	case RS15: return true;
+	case RS16: return true;
+	case RS17: return true;
+	case RS18: return true;
+	case RS19: return true;
+	case RS20: return true;
+	case RS21: return true;
+	case RS22: return true;
+	case RS23: return true;
 	}
 
 	return false;
 }
 
-static void insn_insert_before_call(struct blk *b, struct insn save, ssize_t pos)
+static void insn_insert_before_call(struct blk *b, struct insn save,
+                                    ssize_t pos)
 {
 	assert((insn_at(b->insns, pos)).type == CALL);
 	struct insn setup;
@@ -402,7 +412,8 @@ static void insn_insert_before_call(struct blk *b, struct insn save, ssize_t pos
 	insn_insert(b, save, pos + 1);
 }
 
-static void insn_insert_after_call(struct blk *b, struct insn restore, size_t pos)
+static void insn_insert_after_call(struct blk *b, struct insn restore,
+                                   size_t pos)
 {
 	assert((insn_at(b->insns, pos)).type == CALL);
 	size_t max = vec_len(&b->insns);
@@ -419,7 +430,8 @@ static void insn_insert_after_call(struct blk *b, struct insn restore, size_t po
 	insn_insert(b, restore, pos);
 }
 
-static size_t do_call_saves(struct blk *b, struct vec *lifetimes, struct vec *rmap, struct vec *calls)
+static size_t do_call_saves(struct blk *b, struct vec *lifetimes,
+                            struct vec *rmap, struct vec *calls)
 {
 	size_t offset = 0;
 	size_t max_counter = 0;
@@ -447,8 +459,9 @@ static size_t do_call_saves(struct blk *b, struct vec *lifetimes, struct vec *rm
 				continue;
 
 			struct insn save = insn_create(SAVE, NOTYPE,
-							noclass(), r,
-							imm_val(counter, I27), 0);
+			                               noclass(), r,
+			                               imm_val(counter, I27),
+			                               0);
 
 			insn_insert_before_call(b, save, call_pos + offset - 1);
 			offset++;
@@ -467,8 +480,9 @@ static size_t do_call_saves(struct blk *b, struct vec *lifetimes, struct vec *rm
 			/* hmm, restore should maybe put r as its output to be
 			 * more consistent... */
 			struct insn restore = insn_create(RESTORE, NOTYPE,
-							noclass(), r,
-							imm_val(counter, I27), 0);
+			                                  noclass(), r,
+			                                  imm_val(counter, I27),
+			                                  0);
 
 			insn_insert_after_call(b, restore, call_pos - 1);
 			counter++;
@@ -505,7 +519,13 @@ void regalloc(struct fn *f)
 		size_t max_callee_save = build_rmap(&hints, &lifetimes, &rmap);
 
 		do_rewrites(b, &rmap);
-		size_t max_call_save = do_call_saves(b, &lifetimes, &rmap, &calls);
+		size_t max_call_save = do_call_saves(b, &lifetimes, &rmap,
+		                                     &calls);
+		/* hints should probably propagate registers as far as possible,
+		 * right now I'm thinking that we should update block
+		 * args/params and we can stop updating when the hints don't
+		 * change. Unsure how efficient this would be, I guess we'll
+		 * find out :) */
 		/** @todo forward_hints(b, &hints, &rmap) */
 		if (vec_len(&calls) != 0)
 			f->has_calls = true;

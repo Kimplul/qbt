@@ -234,7 +234,7 @@ static void output_save(struct insn n, FILE *o, struct fn *f)
 	assert(r.class == REG);
 	int64_t i = n.in[1].v;
 	fprintf(o, "st w %s, -%zi(fp)\n",
-			rname(r), call_save_fploc(f, i));
+	        rname(r), call_save_fploc(f, i));
 }
 
 static void output_restore(struct insn n, FILE *o, struct fn *f)
@@ -243,7 +243,7 @@ static void output_restore(struct insn n, FILE *o, struct fn *f)
 	assert(r.class == REG);
 	int64_t i = n.in[1].v;
 	fprintf(o, "ld w %s, -%zi(fp)\n",
-			rname(r), call_save_fploc(f, i));
+	        rname(r), call_save_fploc(f, i));
 }
 
 static void output_store(struct insn n, FILE *o)
@@ -262,7 +262,7 @@ static void output_store(struct insn n, FILE *o)
 
 	int64_t off = offset.v;
 	fprintf(o, "st %c %s, %lli(%s)\n",
-			width, rname(t), (long long int)off, rname(b));
+	        width, rname(t), (long long int)off, rname(b));
 }
 
 static void output_load(struct insn n, FILE *o)
@@ -281,7 +281,7 @@ static void output_load(struct insn n, FILE *o)
 
 	int64_t off = offset.v;
 	fprintf(o, "ld %c %s, %lli(%s)\n",
-			width, rname(t), (long long int)off, rname(b));
+	        width, rname(t), (long long int)off, rname(b));
 }
 
 static void output_lt(struct insn i, FILE *o)
@@ -289,10 +289,10 @@ static void output_lt(struct insn i, FILE *o)
 	assert(i.type == LT);
 	if (i.in[1].class == IMM)
 		fprintf(o, "slti %s, %s, %lli\n",
-				rname(i.out), rname(i.in[0]), (long long)i.in[1].v);
+		        rname(i.out), rname(i.in[0]), (long long)i.in[1].v);
 	else
 		fprintf(o, "slt %s, %s, %s\n",
-				rname(i.out), rname(i.in[0]), rname(i.in[1]));
+		        rname(i.out), rname(i.in[0]), rname(i.in[1]));
 }
 
 static void output_insn(struct insn n, FILE *o, struct fn *f)
@@ -336,22 +336,22 @@ static void output_bne(struct blk *b, struct fn *f, FILE *o)
 {
 	assert(b->s2);
 	fprintf(o, "bne %s, %s, .%s.%lli\n",
-			rname(b->cmp[0]), rname(b->cmp[1]),
-			f->name, (long long)b->s2->id);
+	        rname(b->cmp[0]), rname(b->cmp[1]),
+	        f->name, (long long)b->s2->id);
 }
 
 static void output_bnz(struct blk *b, struct fn *f, FILE *o)
 {
 	assert(b->s2);
 	fprintf(o, "bne %s, x0, .%s.%lli\n",
-			rname(b->cmp[0]), f->name, (long long)b->s2->id);
+	        rname(b->cmp[0]), f->name, (long long)b->s2->id);
 }
 
 static void output_bez(struct blk *b, struct fn *f, FILE *o)
 {
 	assert(b->s2);
 	fprintf(o, "beq %s, x0, .%s.%lli\n",
-			rname(b->cmp[0]), f->name, (long long)b->s2->id);
+	        rname(b->cmp[0]), f->name, (long long)b->s2->id);
 }
 
 static void output_ret(struct fn *f, FILE *o)
