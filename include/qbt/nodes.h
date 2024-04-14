@@ -17,6 +17,7 @@ enum insn_type {
 	STORE,
 	LOAD,
 	ALLOC,
+	DEALLOC,
 	COPY,
 	MOVE,
 	BLIT,
@@ -67,6 +68,7 @@ enum insn_flags {
 	M(STORE)             \
 	M(LOAD)              \
 	M(ALLOC)             \
+	M(DEALLOC)           \
 	M(COPY)              \
 	M(MOVE)              \
 	M(BLIT)              \

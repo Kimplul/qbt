@@ -55,6 +55,12 @@ int main(int argc, char *argv[])
 	struct parser *p = create_parser();
 	parse(p, fname, buf);
 
+	int ret = 0;
+	if (p->failed) {
+		ret = -1;
+		goto out;
+	}
+
 	foreach_fn(i, p->fns) {
 		struct fn_map m = fn_at(p->fns, i);
 		// also handles things like register mapping etc.
@@ -63,6 +69,8 @@ int main(int argc, char *argv[])
 		output(m.fn, stdout);
 	}
 
+out:
 	destroy_parser(p);
 	free(buf);
+	return ret;
 }

@@ -68,6 +68,14 @@ static size_t correct_relations(struct blk *b, size_t ii, struct insn i,
 	return ri;
 }
 
+static size_t correct_store(struct blk *b, size_t ii, struct insn i, size_t ri)
+{
+	if (i.in[1].class == IMM)
+		return spill_imm(b, ii, i, 1, ri);
+
+	return ri;
+}
+
 static size_t correct_insn(struct blk *b, size_t ii, struct insn i, size_t ri)
 {
 	/* replace references with instructions */
@@ -108,6 +116,9 @@ static size_t correct_insn(struct blk *b, size_t ii, struct insn i, size_t ri)
 	case EQ:
 	case NE:
 		return correct_relations(b, ii, i, ri);
+
+	case STORE:
+		return correct_store(b, ii, i, ri);
 
 	default:
 	}

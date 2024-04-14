@@ -188,6 +188,10 @@ void dump_insn(struct insn i)
 		dump_val(i.in[1]);
 	}
 
+	/* crude, but works for now */
+	if (i.v)
+		printf(" %lli ", i.v);
+
 	if (i.flags)
 		printf("*");
 

@@ -248,11 +248,9 @@ static void output_restore(struct insn n, FILE *o, struct fn *f)
 
 static void output_store(struct insn n, FILE *o)
 {
-	struct val offset = n.out;
 	struct val b = n.in[0];
 	struct val t = n.in[1];
 
-	assert(offset.class == IMM);
 	assert(b.class == REG);
 	assert(t.class == REG);
 
@@ -260,7 +258,7 @@ static void output_store(struct insn n, FILE *o)
 	if (n.vtype == I9)
 		width = 't';
 
-	int64_t off = offset.v;
+	int64_t off = n.v;
 	fprintf(o, "st %c %s, %lli(%s)\n",
 	        width, rname(t), (long long int)off, rname(b));
 }
@@ -269,9 +267,7 @@ static void output_load(struct insn n, FILE *o)
 {
 	struct val t = n.out;
 	struct val b = n.in[0];
-	struct val offset = n.in[1];
 
-	assert(offset.class == IMM);
 	assert(b.class == REG);
 	assert(t.class == REG);
 
@@ -279,7 +275,7 @@ static void output_load(struct insn n, FILE *o)
 	if (n.vtype == I9)
 		width = 't';
 
-	int64_t off = offset.v;
+	int64_t off = n.v;
 	fprintf(o, "ld %c %s, %lli(%s)\n",
 	        width, rname(t), (long long int)off, rname(b));
 }
@@ -293,6 +289,21 @@ static void output_lt(struct insn i, FILE *o)
 	else
 		fprintf(o, "slt %s, %s, %s\n",
 		        rname(i.out), rname(i.in[0]), rname(i.in[1]));
+}
+
+static void output_alloc(struct insn i, FILE *o)
+{
+	assert(i.type == ALLOC);
+	/** @todo alignment is ignored, is that our responsibility? */
+	fprintf(o, "addi sp, sp, -%lli\n", i.v);
+	fprintf(o, "mov %s, sp\n", rname(i.out));
+}
+
+static void output_dealloc(struct insn i, FILE *o)
+{
+	assert(i.type == DEALLOC);
+	/** @todo alignment is ignored */
+	fprintf(o, "addi sp, sp, %lli\n", i.v);
 }
 
 static void output_insn(struct insn n, FILE *o, struct fn *f)
@@ -309,6 +320,8 @@ static void output_insn(struct insn n, FILE *o, struct fn *f)
 	case CALL: output_call(n, o); break;
 	case STORE: output_store(n, o); break;
 	case LOAD: output_load(n, o); break;
+	case ALLOC: output_alloc(n, o); break;
+	case DEALLOC: output_dealloc(n, o); break;
 	case SAVE: output_save(n, o, f); break;
 	case RESTORE: output_restore(n, o, f); break;
 	default: fprintf(stderr, "unimplemented insn: %s\n", op_str(n.type));

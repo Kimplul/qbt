@@ -362,15 +362,13 @@ mem_off
 
 mem
 	: type id "<<" mem_base mem_off {
-		struct val t = IDTOVAL($[id]);
+		struct val t = IDALLOC($[id]);
 		struct val b = IDTOVAL($[mem_base]);
 		INSADD(LOAD, $[type], t, b, noclass(), $[mem_off]);
 	}
-	| id ">>" type mem_base mem_off {
-		struct val t = IDTOVAL($[id]);
+	| arg ">>" type mem_base mem_off {
 		struct val b = IDTOVAL($[mem_base]);
-		/* really not a huge fan or 'reusing' the output slot... */
-		INSADD(STORE, $[type], noclass(), b, t, $[mem_off]);
+		INSADD(STORE, $[type], noclass(), b, $[arg], $[mem_off]);
 	}
 	| id "<<*" int id {
 		struct val t = IDTOVAL($1);
@@ -382,6 +380,10 @@ stack
 	: type id "=" "^" int {
 		struct val t = IDALLOC($[id]);
 		INSADD(ALLOC, $[type], t, noclass(), noclass(), $[int]);
+	}
+
+	| "^" "^" int {
+		INSADD(DEALLOC, NOTYPE, noclass(), noclass(), noclass(), $[int]);
 	}
 
 cond
@@ -480,8 +482,8 @@ opt_call_rets
 	| {}
 
 call_arg
-	: type arg {
-		INSADD(ARG, $[type], noclass(), $[arg], imm_val(parser->idx++, I27), 0);
+	: arg {
+		INSADD(ARG, NOTYPE, noclass(), $[arg], imm_val(parser->idx++, I27), 0);
 	}
 
 call_args
@@ -568,6 +570,9 @@ top
 unit
 	: top unit
 	| top
+	| error {
+		parser->failed = true;
+	}
 
 input
 	: unit

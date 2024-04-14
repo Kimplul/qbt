@@ -21,7 +21,7 @@ void vec_append(struct vec *v, void *n);
 void vec_insert(struct vec *v, void *n, size_t i);
 
 #define foreach_vec(iter, v) \
-	for (size_t iter = 0, __n = vec_len(&v); iter < __n; ++iter)
+	for (size_t iter = 0; iter < vec_len(&v); ++iter)
 
 #define vect_at(type, v, i) \
 	*(type *)vec_at(&v, i)
