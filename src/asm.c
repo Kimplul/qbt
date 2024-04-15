@@ -296,7 +296,7 @@ static void output_alloc(struct insn i, FILE *o)
 	assert(i.type == ALLOC);
 	/** @todo alignment is ignored, is that our responsibility? */
 	fprintf(o, "addi sp, sp, -%lli\n", i.v);
-	fprintf(o, "mov %s, sp\n", rname(i.out));
+	fprintf(o, "mv %s, sp\n", rname(i.out));
 }
 
 static void output_dealloc(struct insn i, FILE *o)

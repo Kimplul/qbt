@@ -401,15 +401,24 @@ static void insn_insert_before_call(struct blk *b, struct insn save,
 {
 	assert((insn_at(b->insns, pos)).type == CALL);
 	struct insn setup;
-	do {
-		if (pos < 0)
+	while (1) {
+		if (pos < 0) {
+			pos = 0;
 			break;
+		}
 
 		setup = insn_at(b->insns, pos);
-		pos--;
-	} while (has_insn_flag(setup, CALL_SETUP));
+		if (has_insn_flag(setup, CALL_SETUP)) {
+			pos--;
+			continue;
+		}
 
-	insn_insert(b, save, pos + 1);
+		/* we want to insert after this instruction */
+		pos++;
+		break;
+	};
+
+	insn_insert(b, save, pos);
 }
 
 static void insn_insert_after_call(struct blk *b, struct insn restore,
@@ -419,13 +428,18 @@ static void insn_insert_after_call(struct blk *b, struct insn restore,
 	size_t max = vec_len(&b->insns);
 
 	struct insn setup;
-	do {
+	while (1) {
 		if (pos == max)
 			break;
 
 		setup = insn_at(b->insns, pos);
-		pos++;
-	} while (has_insn_flag(setup, CALL_TEARDOWN));
+		if (has_insn_flag(setup, CALL_TEARDOWN)) {
+			pos++;
+			continue;
+		}
+
+		break;
+	}
 
 	insn_insert(b, restore, pos);
 }
