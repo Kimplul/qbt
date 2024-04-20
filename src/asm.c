@@ -398,16 +398,79 @@ static void output_branch(struct blk *b, struct fn *f, FILE *o)
 	}
 }
 
+enum move_status {
+	TO_MOVE,
+	BEING_MOVED,
+	MOVED,
+};
+
+static void move_one(struct vec *params, struct vec *args, struct vec *status, size_t pi, FILE *o)
+{
+	struct val p = blk_param_at(*params, pi);
+	struct val a = blk_param_at(*args, pi);
+
+	if (same_val(p, a))
+		return;
+
+	vect_at(enum move_status, *status, pi) = BEING_MOVED;
+	foreach_blk_param(ai, *args) {
+		struct val a = blk_param_at(*args, ai);
+		/* moving argument to p would clobber another argument */
+		if (!same_val(a, p))
+			continue;
+
+		enum move_status s = vect_at(enum move_status, *status, ai);
+		switch (s) {
+		case TO_MOVE: {
+			move_one(params, args, status, ai, o);
+			break;
+		}
+
+		case BEING_MOVED: {
+			/* use temporary register to shuffle arguments around */
+			struct val tmp = reg_val(RTMP0);
+			struct insn i = insn_create(MOVE, NOTYPE, tmp, a, noclass(), 0);
+			output_move(i, o);
+			blk_param_at(*args, ai) = tmp;
+			break;
+		}
+
+		case MOVED:
+			break;
+
+		default:
+			abort();
+		}
+	}
+
+	struct insn i = insn_create(MOVE, NOTYPE, p, a, noclass(), 0);
+	output_move(i, o);
+	vect_at(enum move_status, *status, pi) = MOVED;
+}
+
 static void output_moves(struct vec *params, struct vec *args, FILE *o)
 {
+	/* this is taken from lightening, which took it from
+	 *
+	 * Tilting at Windmills with Coq: Formal Verification
+	 * of a Compilation Algorithm for Parallel Moves
+	 *  by Rideau et al
+	 */
 	/* move arguments to parameters */
 	assert(vec_len(params) == vec_len(args));
+
+	struct vec status = vec_create(sizeof(enum move_status));
 	foreach_blk_param(pi, *params) {
-		struct val p = blk_param_at(*params, pi);
-		struct val a = blk_param_at(*args, pi);
-		struct insn i = insn_create(MOVE, NOTYPE, p, a, noclass(), 0);
-		output_move(i, o);
+		enum move_status s = TO_MOVE;
+		vec_append(&status, &s);
 	}
+
+	foreach_blk_param(pi, *params) {
+		if (vect_at(enum move_status, status, pi) == TO_MOVE)
+			move_one(params, args, &status, pi, o);
+	}
+
+	vec_destroy(&status);
 }
 
 void output(struct fn *f, FILE *o)

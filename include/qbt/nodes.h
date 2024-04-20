@@ -357,4 +357,6 @@ static inline void insn_insert(struct blk *b, struct insn i, size_t pos)
 	vec_insert(&b->insns, &i, pos);
 }
 
+bool return_blk(struct blk *b);
+
 #endif /* NODES_H */

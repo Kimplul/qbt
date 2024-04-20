@@ -521,8 +521,8 @@ call
 	  }
 
 proc_ret
-	: id {
-		INSADD(RETARG, NOTYPE, noclass(), IDTOVAL($[id]), imm_val(parser->idx++, I27), 0);
+	: arg {
+		INSADD(RETARG, NOTYPE, noclass(), $[arg], imm_val(parser->idx++, I27), 0);
 	}
 
 proc_rets

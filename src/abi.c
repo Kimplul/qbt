@@ -5,7 +5,7 @@
 static const int64_t ar_map[] = {
 	RA0, RA1, RA2, RA3, RA4, RA5, RA6, RA7, RA8, RA9,
 	RA10, RA11, RA12, RA13, RA14, RA15, RA16, RA17, RA18, RA19,
-	RA20, RA21, RA22, RA23, RA24
+	RA20, RA21, RA22, RA23
 };
 
 static struct val nth_ar(int64_t nth)

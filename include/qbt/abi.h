@@ -131,7 +131,7 @@ enum {
 	RA21,
 	RA22,
 	RA23,
-	RA24,
+	RTMP0,
 	RT7,
 	RT8,
 	RT9,
@@ -149,7 +149,7 @@ enum {
 	RT21,
 	RT22,
 	RT23,
-	RT24,
+	RTMP1,
 	RS7,
 	RS8,
 	RS9,
@@ -167,7 +167,7 @@ enum {
 	RS21,
 	RS22,
 	RS23,
-	RS24,
+	RTMP2,
 };
 
 #define FOREACH_REG(M) \

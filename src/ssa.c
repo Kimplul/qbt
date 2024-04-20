@@ -41,6 +41,11 @@ static void build_params(struct blk *b, int visited)
 
 	b->visited++;
 
+	if (return_blk(b)) {
+		b->s1 = NULL;
+		b->s2 = NULL;
+	}
+
 	if (b->s1)
 		build_params(b->s1, visited);
 
@@ -102,7 +107,7 @@ static void build_params(struct blk *b, int visited)
 		if (p.class == NOCLASS)
 			continue;
 
-		if (has_val(&forward, p))
+		if (has_val(&required, p))
 			continue;
 
 		add_val(&required, p);
@@ -216,7 +221,6 @@ static size_t rename_temps(struct blk *b, size_t i)
 	}
 
 	vec_destroy(&rmap);
-
 	return i;
 }
 
