@@ -108,7 +108,8 @@ static struct val rewrite_tmp(struct vec *rmap, struct val t)
 	return r;
 }
 
-static size_t correct_addr(struct blk *b, struct vec *rewrite_addrs, size_t ii, struct insn i, size_t ri)
+static size_t correct_addr(struct blk *b, struct vec *rewrite_addrs, size_t ii,
+                           struct insn i, size_t ri)
 {
 	if (i.in[0].class == TMP) {
 		/** @todo this messes with the rest of the corrections, as the
@@ -124,7 +125,8 @@ static size_t correct_addr(struct blk *b, struct vec *rewrite_addrs, size_t ii, 
 	return ri;
 }
 
-static size_t load_rewrite(struct blk *b, struct vec *rewrite_addrs, size_t ii, struct insn i, size_t ri, size_t idx)
+static size_t load_rewrite(struct blk *b, struct vec *rewrite_addrs, size_t ii,
+                           struct insn i, size_t ri, size_t idx)
 {
 	struct val addr = rewrite_tmp(rewrite_addrs, i.in[idx]);
 	struct val tmp = tmp_val(ri++);
@@ -135,7 +137,8 @@ static size_t load_rewrite(struct blk *b, struct vec *rewrite_addrs, size_t ii, 
 	return ri;
 }
 
-static size_t store_rewrite(struct blk *b, struct vec *rewrite_addrs, size_t ii, struct insn i, size_t ri)
+static size_t store_rewrite(struct blk *b, struct vec *rewrite_addrs, size_t ii,
+                            struct insn i, size_t ri)
 {
 	struct val addr = rewrite_tmp(rewrite_addrs, i.out);
 	struct val tmp = tmp_val(ri++);
@@ -146,7 +149,8 @@ static size_t store_rewrite(struct blk *b, struct vec *rewrite_addrs, size_t ii,
 	return ri;
 }
 
-static size_t correct_insn(struct blk *b, struct vec *rewrite_addrs, size_t ii, struct insn i, size_t ri)
+static size_t correct_insn(struct blk *b, struct vec *rewrite_addrs, size_t ii,
+                           struct insn i, size_t ri)
 {
 	/* replace registers referencing rewritten addr */
 	if (i.in[0].class == TMP && has_rewrite_rule(rewrite_addrs, i.in[0]))

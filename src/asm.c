@@ -404,7 +404,8 @@ enum move_status {
 	MOVED,
 };
 
-static void move_one(struct vec *params, struct vec *args, struct vec *status, size_t pi, FILE *o)
+static void move_one(struct vec *params, struct vec *args, struct vec *status,
+                     size_t pi, FILE *o)
 {
 	struct val p = blk_param_at(*params, pi);
 	struct val a = blk_param_at(*args, pi);
@@ -429,7 +430,8 @@ static void move_one(struct vec *params, struct vec *args, struct vec *status, s
 		case BEING_MOVED: {
 			/* use temporary register to shuffle arguments around */
 			struct val tmp = reg_val(RTMP0);
-			struct insn i = insn_create(MOVE, NOTYPE, tmp, a, noclass(), 0);
+			struct insn i = insn_create(MOVE, NOTYPE, tmp, a,
+			                            noclass(), 0);
 			output_move(i, o);
 			blk_param_at(*args, ai) = tmp;
 			break;
