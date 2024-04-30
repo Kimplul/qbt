@@ -1,9 +1,17 @@
 # qbt
 
-Optimizing middle/back end for triscv.
+Optimizing middle/back end for triscv. Takes pretty heavy inspiration from QBE:
+https://c9x.me/compile/
+
+Instruction documentation is TODO, please see `src/parser.y` for current list of
+instructions. They may still change in the near future.
 
 # ABI
 
+Currently I'm assuming the ABI to be according to the following table, but this
+is not quite set in stone yet.
+
+```
 | Register | Name |
 |----------|------|
 | x0       | x0
@@ -87,3 +95,4 @@ Optimizing middle/back end for triscv.
 | x78      | s22
 | x79      | s23
 | x80      | tmp2
+```
