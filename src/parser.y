@@ -381,7 +381,11 @@ stack
 		struct val t = IDALLOC($[id]);
 		INSADD(ALLOC, $[type], t, noclass(), noclass(), $[int]);
 	}
-
+	| type id "=" "^" id {
+		struct val t = IDALLOC($2);
+		struct val f = IDTOVAL($5);
+		INSADD(ADDR, $[type], t, f, noclass(), 0);
+	}
 	| "^" "^" int {
 		INSADD(DEALLOC, NOTYPE, noclass(), noclass(), noclass(), $[int]);
 	}

@@ -45,11 +45,11 @@ enum insn_type {
 	RETARG,
 	PARAM,
 	RETVAL,
+	ADDR,
 
 	/* internal */
 	SAVE,
 	RESTORE,
-	ADDR,
 };
 
 enum insn_flags {

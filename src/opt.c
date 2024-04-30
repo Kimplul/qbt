@@ -9,13 +9,13 @@ void optimize(struct fn *f)
 	printf("\n// initial:\n");
 	dump_function(f);
 
-	/* unreachability is done in several steps I guess */
-	size_t ri = ssa(f);
-	printf("\n// after SSA:\n");
+	f->ntmp = correct(f, f->ntmp);
+	printf("\n// corrections:\n");
 	dump_function(f);
 
-	correct(f, ri);
-	printf("\n// corrections:\n");
+	/* unreachability is done in several steps I guess */
+	ssa(f);
+	printf("\n// after SSA:\n");
 	dump_function(f);
 
 	abi0(f);

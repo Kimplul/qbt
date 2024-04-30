@@ -151,9 +151,6 @@ static void collect_params(struct blk *b, int visited)
 	}
 }
 
-#define tmpval_at(rmap, i) \
-	vect_at(struct val, rmap, i)
-
 static void add_rewrite_rule(struct vec *rmap, struct val from, struct val to)
 {
 	assert(from.class == TMP);
@@ -164,14 +161,14 @@ static void add_rewrite_rule(struct vec *rmap, struct val from, struct val to)
 		vec_append(rmap, &no);
 	}
 
-	tmpval_at(*rmap, from.r) = to;
+	val_at(*rmap, from.r) = to;
 }
 
 static struct val rewrite_tmp(struct vec *rmap, struct val from)
 {
 	assert(from.class == TMP);
 	assert(from.r <= (int64_t)vec_len(rmap));
-	struct val v = tmpval_at(*rmap, from.r);
+	struct val v = val_at(*rmap, from.r);
 	assert(v.class == TMP);
 	return v;
 }
