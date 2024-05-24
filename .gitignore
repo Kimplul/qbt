@@ -4,5 +4,5 @@ build
 gen
 qbt
 *.t
-!gen/.gitkeep
+!gen/source.mk
 !include/qbt

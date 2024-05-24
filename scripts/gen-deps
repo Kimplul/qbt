@@ -1,35 +1,37 @@
 #!/bin/sh
 
-gencommon () {
-	lint="build/${s%.*}${1}.l"
-	dep="build/${s%.*}${1}.d"
-	obj="build/${s%.*}${1}"
+PREFIX=
+COMPILE=COMPILE
+LINT=LINT
+BUILD=build/
 
-	echo "${dep}:"		>> deps.mk
-	echo "include ${dep}"	>> deps.mk
-	echo "${obj}: ${s}"	>> deps.mk
-}
+while getopts "p:c:b:l:" opt; do
+	case "$opt" in
+		p) PREFIX="$OPTARG"_;;
+		c) COMPILE="$OPTARG";;
+		l) LINT="$OPTARG";;
+		b) BUILD=build/"$OPTARG";;
+		*) echo "unrecognised option -$OPTARG" >&2; exit 1;;
+	esac
+done
 
-genobjs () {
-	gencommon ".o"
-	echo "${obj}: ${s}"	>> deps.mk
-	echo "	\$(COMPILE) -c $< -o \$@" >> deps.mk
-
-	echo "${lint}: ${s}" >> deps.mk
-	echo "	\$(LINT) -c ${s} -o /dev/null" >> deps.mk
-}
-
-case "${1}" in
-	--sources)
-		func=genobjs
-		;;
-esac
+shift $((OPTIND - 1))
 
 # create all subdirectories
-mkdir -p $(echo "${2}" | xargs dirname | uniq | sed 's|^|build/|g')
+mkdir -p $(echo "${@}" | tr ' ' '\n' | sed "s|[^/]*$||;s|^|${BUILD}/|" | uniq)
 
-for s in ${2}
+for s in ${@}
 do
-	${func} ${suffix}
-	echo ${obj}
+	obj="${BUILD}/${s%.*}.o"
+	lint="${obj}.l"
+	dep="${obj}.d"
+
+	echo "${PREFIX}OBJS += ${obj}"			>> deps.mk
+	echo "${PREFIX}LINTS += ${lint}"		>> deps.mk
+	echo "${dep}:"					>> deps.mk
+	echo "-include ${dep}"				>> deps.mk
+	echo "${obj}: ${s}"				>> deps.mk
+	echo "	\$(${COMPILE}) -c ${s} -o ${obj}"	>> deps.mk
+	echo "${lint}: ${s}"				>> deps.mk
+	echo "	\$(${LINT}) -c ${s} -o /dev/null"	>> deps.mk
 done
