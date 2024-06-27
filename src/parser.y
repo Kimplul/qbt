@@ -516,12 +516,18 @@ call
 		INS_REPLACE($[placeholder],
 			insn_create(CALL, NOTYPE,
 				noclass(), imm_ref($[addr]), noclass(), 0));
+
+		/* make some optimization phases easier by splitting each call
+		 * into a separate block */
+		NEW_BLOCK(J, noclass(), noclass(), NULL);
 	}
 	| id reset_index "(" opt_call_args ")"
 	  "=>" placeholder reset_index "(" opt_call_rets ")" {
 		INS_REPLACE($[placeholder],
 			insn_create(CALL, NOTYPE,
 				noclass(), IDTOVAL($[id]), noclass(), 0));
+
+		NEW_BLOCK(J, noclass(), noclass(), NULL);
 	  }
 
 proc_ret
@@ -555,15 +561,24 @@ insn
 	| call
 	| return
 
-body
-	: insn ";" body
-	| label body
+labels
+	: labels label
 	| label
-	| insn ";"
+
+body
+	: body ";" labels insn
+	| body ";" insn
+	| labels insn
+	| labels
+	| insn
+
+body_opt_term
+	: body
+	| body ";"
 
 /** @todo add in return type checking? */
 function
-	: id reset_index "(" opt_params ")" "{" body "}" {
+	: id reset_index "(" opt_params ")" "{" body_opt_term "}" {
 		NEW_FUNCTION($[id]);
 	}
 
@@ -572,7 +587,7 @@ top
 	| function
 
 unit
-	: top unit
+	: unit top
 	| top
 	| error {
 		parser->failed = true;

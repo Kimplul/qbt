@@ -34,24 +34,65 @@ static bool has_val(struct vec *map, struct val v)
 	return p.class != NOCLASS;
 }
 
+static bool entered(struct blk *b, int visited)
+{
+	return b->visited >= visited + 1;
+}
+
+static void enter(struct blk *b)
+{
+	b->visited++;
+}
+
+static bool done(struct blk *b, int visited)
+{
+	return b->visited >= visited + 2;
+}
+
+static void leave(struct blk *b)
+{
+	b->visited++;
+}
+
 static void build_params(struct blk *b, int visited)
 {
-	if (b->visited > visited)
+	if (done(b, visited))
 		return;
 
-	b->visited++;
+	/* recursive functionality made iterative by using an external
+	 * stack, just think of pushing to the stack as doing a recursive call
+	 * */
+	struct vec stack = vec_create(sizeof(struct blk *));
+	vec_append(&stack, &b);
 
+top:
+	if (vec_len(&stack) == 0) {
+		vec_destroy(&stack);
+		return;
+	}
+
+	b = vect_pop(struct blk *, stack);
 	if (return_blk(b)) {
 		b->s1 = NULL;
 		b->s2 = NULL;
 	}
 
-	if (b->s1)
-		build_params(b->s1, visited);
+	/* this is the first time here, queue up work for us */
+	if (!entered(b, visited)) {
+		/* put ourselves back onto the stack */
+		vec_append(&stack, &b);
 
-	if (b->s2)
-		build_params(b->s2, visited);
+		if (b->s1)
+			vec_append(&stack, &b->s1);
+		if (b->s2)
+			vec_append(&stack, &b->s2);
 
+		enter(b);
+		goto top;
+	}
+
+	/* second time through, do actual work now that dependencies (should) be
+	 * done */
 	struct vec generated = vec_create(sizeof(struct val));
 	struct vec forward = vec_create(sizeof(struct val));
 	struct vec required = vec_create(sizeof(struct val));
@@ -125,30 +166,50 @@ static void build_params(struct blk *b, int visited)
 	vec_destroy(&required);
 	vec_destroy(&forward);
 	vec_destroy(&generated);
+	leave(b); // mark us ready
+	goto top;
 }
 
 static void collect_params(struct blk *b, int visited)
 {
-	if (b->visited > visited)
+	if (done(b, visited))
 		return;
 
-	b->visited++;
+	struct vec stack = vec_create(sizeof(struct blk *));
+	vec_append(&stack, &b);
 
-	if (b->s1) {
-		collect_params(b->s1, visited);
-		foreach_blk_param(pi, b->s1->params) {
-			struct val p = blk_param_at(b->s1->params, pi);
-			vec_append(&b->args1, &p);
-		}
+top:
+	if (vec_len(&stack) == 0) {
+		vec_destroy(&stack);
+		return;
 	}
 
-	if (b->s2) {
-		collect_params(b->s2, visited);
-		foreach_blk_param(pi, b->s2->params) {
-			struct val p = blk_param_at(b->s2->params, pi);
-			vec_append(&b->args2, &p);
-		}
+	b = vect_pop(struct blk *, stack);
+	if (!entered(b, visited)) {
+		vec_append(&stack, &b);
+
+		if (b->s1)
+			vec_append(&stack, &b->s1);
+
+		if (b->s2)
+			vec_append(&stack, &b->s2);
+
+		enter(b);
+		goto top;
 	}
+
+	foreach_blk_param(pi, b->s1->params) {
+		struct val p = blk_param_at(b->s1->params, pi);
+		vec_append(&b->args1, &p);
+	}
+
+	foreach_blk_param(pi, b->s2->params) {
+		struct val p = blk_param_at(b->s2->params, pi);
+		vec_append(&b->args2, &p);
+	}
+
+	leave(b);
+	goto top;
 }
 
 static void add_rewrite_rule(struct vec *rmap, struct val from, struct val to)

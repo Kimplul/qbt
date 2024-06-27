@@ -175,10 +175,26 @@ static void collect_lifetimes(struct blk *b, struct vec *hints,
 	}
 }
 
-static void build_active_between(struct vec *active, struct vec *lifetimes,
-                                 size_t start, size_t end)
+static void build_active_between(struct vec *active, struct vec *prev_active, struct vec *lifetimes,
+                                 size_t i, size_t start, size_t end)
 {
-	foreach_lifetime(li, *lifetimes) {
+	/* we really only need to look at previously active lifetimes and check
+	 * which ones are still active, no need to iterate all the way from the
+	 * start. Only works if prev_active is really the previous lifetime in
+	 * the lifetimes vector */
+	if (prev_active)
+	foreach_lifetime(li, *prev_active) {
+		struct lifetime l = lifetime_at(*lifetimes, li);
+		if (l.end <= start)
+			continue;
+
+		if (l.start >= end)
+			break;
+
+		vec_append(active, &l);
+	}
+
+	for (size_t li = i; li < vec_len(lifetimes); ++li) {
 		struct lifetime l = lifetime_at(*lifetimes, li);
 		if (l.used == 0)
 			continue;
@@ -188,17 +204,20 @@ static void build_active_between(struct vec *active, struct vec *lifetimes,
 		if (l.end <= start)
 			continue;
 
+		/* since lifetimes must be strictly ascending by start value, we
+		 * know that no other lifetimes can possibly be active after
+		 * this point */
 		if (l.start >= end)
-			continue;
+			break;
 
 		vec_append(active, &l);
 	}
 }
 
-static void build_active(struct vec *active, struct vec *lifetimes, size_t i)
+static void build_active(struct vec *active, struct vec *prev_active, struct vec *lifetimes, size_t i)
 {
 	struct lifetime ref = lifetime_at(*lifetimes, i);
-	build_active_between(active, lifetimes, ref.start, ref.end);
+	build_active_between(active, prev_active, lifetimes, i, ref.start, ref.end);
 }
 
 static void build_reserved(struct vec *reserved, struct vec *active,
@@ -279,10 +298,18 @@ static size_t highest_sreg(struct val f)
 	return 0;
 }
 
+static void swap_lifetimes(struct vec *a, struct vec *b)
+{
+	struct vec tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+
 static size_t build_rmap(struct vec *hints, struct vec *lifetimes,
                          struct vec *rmap)
 {
 	size_t max_callee_save = 0;
+	struct vec prev_active = vec_create(sizeof(struct lifetime));
 	struct vec active = vec_create(sizeof(struct lifetime));
 	struct vec reserved = vec_create(sizeof(struct val));
 
@@ -296,7 +323,7 @@ static size_t build_rmap(struct vec *hints, struct vec *lifetimes,
 
 		vec_reset(&active);
 		vec_reset(&reserved);
-		build_active(&active, lifetimes, li);
+		build_active(&active, &prev_active, lifetimes, li);
 		build_reserved(&reserved, &active, rmap);
 
 		struct val h = get_hint(hints, l.v);
@@ -315,10 +342,15 @@ static size_t build_rmap(struct vec *hints, struct vec *lifetimes,
 			max_callee_save = highest_sreg(f);
 
 		add_rewrite_rule(rmap, l.v, f);
+
+		/* store currently active in prev_active */
+		swap_lifetimes(&active, &prev_active);
+		vec_reset(&active);
 	}
 
 	vec_destroy(&active);
 	vec_destroy(&reserved);
+	vec_destroy(&prev_active);
 
 	return max_callee_save;
 }
@@ -457,7 +489,7 @@ static size_t do_call_saves(struct blk *b, struct vec *lifetimes,
 
 		vec_reset(&active);
 		vec_reset(&reserved);
-		build_active_between(&active, lifetimes, call_pos, call_pos);
+		build_active_between(&active, NULL, lifetimes, 0, call_pos, call_pos);
 		build_reserved(&reserved, &active, rmap);
 
 		/* what follows is a slight bit of index counting, a bit
