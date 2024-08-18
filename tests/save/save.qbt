@@ -3,9 +3,9 @@ main()
 	i27 r0 = 20;
 	i27 r1 = 30;
 	i27 r2 = 50;
-	&_putchar (i9 'H') => (r4);
+	&_putchar ('H') => (r4);
 	i27 r0 = r0 + r1;
 	i27 r0 = r0 + r2;
-	&_putchar (i9 'e') => (r5);
+	&_putchar ('e') => (r5);
 	=> (r0);
 }

@@ -1,5 +1,7 @@
 deps.mk
+tests.mk
 docs/output
+reports
 build
 gen
 qbt

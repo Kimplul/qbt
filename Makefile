@@ -19,6 +19,10 @@ all: setup
 analyze: setup
 	CC='gcc -fanalyzer' SKIP_ANALYZER='-fno-analyzer' $(MAKE) CROSS_COMPILE=
 
+.PHONY: check
+check: all
+	$(MAKE) -C tests -k check
+
 .PHONY:
 setup:
 	@echo -n > deps.mk

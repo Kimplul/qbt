@@ -184,7 +184,7 @@ static void build_active_between(struct vec *active, struct vec *prev_active, st
 	 * the lifetimes vector */
 	if (prev_active)
 	foreach_lifetime(li, *prev_active) {
-		struct lifetime l = lifetime_at(*lifetimes, li);
+		struct lifetime l = lifetime_at(*prev_active, li);
 		if (l.end <= start)
 			continue;
 

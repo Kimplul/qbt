@@ -72,6 +72,9 @@ top:
 	}
 
 	b = vect_pop(struct blk *, stack);
+	if (done(b, visited))
+		goto top;
+
 	if (return_blk(b)) {
 		b->s1 = NULL;
 		b->s2 = NULL;
@@ -185,13 +188,16 @@ top:
 	}
 
 	b = vect_pop(struct blk *, stack);
+	if (done(b, visited))
+		goto top;
+
 	if (!entered(b, visited)) {
 		vec_append(&stack, &b);
 
 		if (b->s1)
 			vec_append(&stack, &b->s1);
 
-		if (b->s2)
+		if (b->s2 && b->s2 != b->s1)
 			vec_append(&stack, &b->s2);
 
 		enter(b);

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+mkdir -p $(for d in "${@}"; do echo "$d"; done | uniq | sed "s|^|reports/|")
+
+for s in "${@}"
+do
+	echo ".PHONY: $s"					>> tests.mk
+	echo "$s:"						>> tests.mk
+	echo "	@../qbt $s/$s.qbt > reports/$s/log 2>&1 \\"	>> tests.mk
+	echo "		&& echo OK > reports/$s/OK \\"		>> tests.mk
+	echo "		|| echo ERR > reports/$s/OK"		>> tests.mk
+done
+
+echo "TESTS += " "${@}" >> tests.mk

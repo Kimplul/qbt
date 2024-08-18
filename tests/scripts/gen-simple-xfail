@@ -1,0 +1,29 @@
+#!/bin/sh
+
+mkdir -p $(for d in "${@}"; do echo "$d"; done \
+		| sed "s|,.*||" | uniq | sed "s|^|reports/|")
+
+for s in "${@}"
+do
+	NAME=${s%%,*}
+	EMSG=${s#${NAME},}
+	echo ".PHONY: $NAME"						>> tests.mk
+	echo "$NAME:"							>> tests.mk
+	echo "	@../qbt $NAME/$NAME.qbt > reports/$NAME/log 2>&1 \\"	>> tests.mk
+	echo "		&& echo 'Wrong retval' > reports/$NAME/OK \\"	>> tests.mk
+	echo "		|| :"						>> tests.mk
+	echo "	@grep '$EMSG' reports/$NAME/log > /dev/null; \\"	>> tests.mk
+	echo "		[ \$\$? -eq 0 ] \\"				>> tests.mk
+	echo "			&& echo OK > reports/$NAME/OK \\"	>> tests.mk
+	echo "			|| echo EMSG > reports/$NAME/OK"	>> tests.mk
+done
+
+echo -n "TESTS +=" >> tests.mk
+for s in "${@}"
+do
+	NAME=${s%%,*}
+	echo -n " $NAME" >> tests.mk
+done
+
+# append newline
+echo "" >> tests.mk
