@@ -32,10 +32,14 @@ OBJCOPY		!= [ "$(LLVM)" != "0" ] \
 			&& echo llvm-objcopy \
 			|| echo $(CROSS_COMPILE)objcopy
 
-COMPILER	!= [ "$(LLVM)" != "0" ] \
-			&& echo clang --target="$(CROSS_COMPILE)" \
-			|| echo $(CROSS_COMPILE)gcc
-
+COMPILER	!= [ -n "$(CROSS_COMPILE)" ]						\
+			&& {								\
+				[ "$(LLVM)" != "0" ]					\
+					&& echo clang --target="$(CROSS_COMPILE)"	\
+					|| echo $(CROSS_COMPILE)gcc			\
+					;						\
+			}								\
+			|| echo $(CC)
 
 OBFLAGS		:= -g
 WARNFLAGS	:= -Wall -Wextra
@@ -60,8 +64,8 @@ COMPILE_QBT	= $(COMPILE) $(QBT_FLAGS)
 
 -include deps.mk
 
-qbt: $(QBT_OBJS)
-	$(COMPILE_QBT) $(QBT_OBJS) -o $@
+qbt: $(QBT_OBJS) build/gen/gen_parser.o
+	$(COMPILE_QBT) $(QBT_OBJS) build/gen/gen_parser.o -o $@
 
 # might lint some common things twice
 .PHONY:

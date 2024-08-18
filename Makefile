@@ -15,6 +15,10 @@ all: setup
 .DEFAULT: setup
 	$(MAKE) -f scripts/makefile $<
 
+.PHONY: analyze
+analyze: setup
+	CC='gcc -fanalyzer' SKIP_ANALYZER='-fno-analyzer' $(MAKE) CROSS_COMPILE=
+
 .PHONY:
 setup:
 	@echo -n > deps.mk
