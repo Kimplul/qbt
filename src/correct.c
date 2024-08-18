@@ -210,6 +210,7 @@ static size_t correct_insn(struct blk *b, struct vec *rewrite_addrs, size_t ii,
 		return correct_addr(b, rewrite_addrs, ii, i, ri);
 
 	default:
+		break;
 	}
 
 	return ri;
