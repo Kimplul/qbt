@@ -87,7 +87,7 @@ top:
 
 		if (b->s1)
 			vec_append(&stack, &b->s1);
-		if (b->s2)
+		if (b->s2 && b->s2 != b->s1)
 			vec_append(&stack, &b->s2);
 
 		enter(b);
@@ -108,7 +108,7 @@ top:
 		}
 	}
 
-	if (b->s2) {
+	if (b->s2 && b->s2 != b->s1) {
 		foreach_blk_param(pi, b->s2->params) {
 			struct val p = blk_param_at(b->s2->params, pi);
 			add_val(&forward, p);
