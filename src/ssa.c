@@ -205,16 +205,16 @@ top:
 	}
 
 	if (b->s1)
-	foreach_blk_param(pi, b->s1->params) {
-		struct val p = blk_param_at(b->s1->params, pi);
-		vec_append(&b->args1, &p);
-	}
+		foreach_blk_param(pi, b->s1->params) {
+			struct val p = blk_param_at(b->s1->params, pi);
+			vec_append(&b->args1, &p);
+		}
 
 	if (b->s2)
-	foreach_blk_param(pi, b->s2->params) {
-		struct val p = blk_param_at(b->s2->params, pi);
-		vec_append(&b->args2, &p);
-	}
+		foreach_blk_param(pi, b->s2->params) {
+			struct val p = blk_param_at(b->s2->params, pi);
+			vec_append(&b->args2, &p);
+		}
 
 	leave(b);
 	goto top;

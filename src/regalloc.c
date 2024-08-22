@@ -175,7 +175,8 @@ static void collect_lifetimes(struct blk *b, struct vec *hints,
 	}
 }
 
-static void build_active_between(struct vec *active, struct vec *prev_active, struct vec *lifetimes,
+static void build_active_between(struct vec *active, struct vec *prev_active,
+                                 struct vec *lifetimes,
                                  size_t i, size_t start, size_t end)
 {
 	/* we really only need to look at previously active lifetimes and check
@@ -183,16 +184,16 @@ static void build_active_between(struct vec *active, struct vec *prev_active, st
 	 * start. Only works if prev_active is really the previous lifetime in
 	 * the lifetimes vector */
 	if (prev_active)
-	foreach_lifetime(li, *prev_active) {
-		struct lifetime l = lifetime_at(*prev_active, li);
-		if (l.end <= start)
-			continue;
+		foreach_lifetime(li, *prev_active) {
+			struct lifetime l = lifetime_at(*prev_active, li);
+			if (l.end <= start)
+				continue;
 
-		if (l.start >= end)
-			break;
+			if (l.start >= end)
+				break;
 
-		vec_append(active, &l);
-	}
+			vec_append(active, &l);
+		}
 
 	for (size_t li = i; li < vec_len(lifetimes); ++li) {
 		struct lifetime l = lifetime_at(*lifetimes, li);
@@ -214,10 +215,12 @@ static void build_active_between(struct vec *active, struct vec *prev_active, st
 	}
 }
 
-static void build_active(struct vec *active, struct vec *prev_active, struct vec *lifetimes, size_t i)
+static void build_active(struct vec *active, struct vec *prev_active,
+                         struct vec *lifetimes, size_t i)
 {
 	struct lifetime ref = lifetime_at(*lifetimes, i);
-	build_active_between(active, prev_active, lifetimes, i, ref.start, ref.end);
+	build_active_between(active, prev_active, lifetimes, i, ref.start,
+	                     ref.end);
 }
 
 static void build_reserved(struct vec *reserved, struct vec *active,
@@ -489,7 +492,8 @@ static size_t do_call_saves(struct blk *b, struct vec *lifetimes,
 
 		vec_reset(&active);
 		vec_reset(&reserved);
-		build_active_between(&active, NULL, lifetimes, 0, call_pos, call_pos);
+		build_active_between(&active, NULL, lifetimes, 0, call_pos,
+		                     call_pos);
 		build_reserved(&reserved, &active, rmap);
 
 		/* what follows is a slight bit of index counting, a bit
