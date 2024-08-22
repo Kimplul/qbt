@@ -291,7 +291,13 @@ void destroy_block(struct blk *b);
 
 void finish_function(struct fn *f, const char *name);
 struct fn *new_function();
+
+#if defined(DEBUG)
 void dump_function(struct fn *f);
+#else
+#define dump_function(f)
+#endif /* DEBUG */
+
 void destroy_function(struct fn *f);
 
 void new_label(struct fn *f, struct blk *b, const char *name);

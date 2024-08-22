@@ -152,6 +152,12 @@ void new_label(struct fn *f, struct blk *b, const char *name)
 	vec_append(&f->labels, &(struct label_map){.id = name, .b = b});
 }
 
+bool return_blk(struct blk *b)
+{
+	return b->btype == RET;
+}
+
+#if defined(DEBUG)
 void dump_val(struct val val) {
 	long long r = val.r;
 	long long v = val.v;
@@ -169,22 +175,22 @@ void dump_val(struct val val) {
 
 void dump_insn(struct insn i)
 {
-	printf("//\t");
+	fputs("//\t", stdout);
 
 	if (hasclass(i.out)) {
 		dump_val(i.out);
-		printf(" ");
+		putchar(' ');
 	}
 
 	printf("%s", op_str(i.type));
 
 	if (hasclass(i.in[0])) {
-		printf(" ");
+		putchar(' ');
 		dump_val(i.in[0]);
 	}
 
 	if (hasclass(i.in[1])) {
-		printf(" ");
+		putchar(' ');
 		dump_val(i.in[1]);
 	}
 
@@ -193,30 +199,25 @@ void dump_insn(struct insn i)
 		printf(" %lli ", i.v);
 
 	if (i.flags)
-		printf("*");
+		putchar('*');
 
-	printf("\n");
+	putchar('\n');
 }
 
-bool return_blk(struct blk *b)
-{
-	return b->btype == RET;
-}
-
-void dump_block(struct blk *b)
+static void dump_block(struct blk *b)
 {
 	printf("//\t/*** block %lld ", (long long)b->id);
 	if (b->name) printf("\"%s\" ", b->name);
 
-	printf("(");
+	putchar('(');
 	foreach_blk_param(pi, b->params) {
 		struct val v = blk_param_at(b->params, pi);
 		dump_val(v);
-		printf(", ");
+		fputs(", ", stdout);
 	}
-	printf(") ");
+	fputs(") ", stdout);
 
-	printf("***/\n");
+	fputs("***/\n", stdout);
 
 	foreach_insn(i, b->insns) {
 		struct insn n = insn_at(b->insns, i);
@@ -224,7 +225,7 @@ void dump_block(struct blk *b)
 	}
 
 	if (return_blk(b)) {
-		printf("//\tRETURN\n");
+		fputs("//\tRETURN\n", stdout);
 		return;
 	}
 
@@ -232,21 +233,21 @@ void dump_block(struct blk *b)
 	struct blk *s2 = b->s2;
 	printf("//\t%s ", op_str(b->btype));
 	dump_val(b->cmp[0]);
-	printf(" ");
+	putchar(' ');
 	dump_val(b->cmp[1]);
 	printf(" -> %lli (", (long long)s2->id);
 	foreach_blk_param(pi, b->args2) {
 		struct val a = blk_param_at(b->args2, pi);
 		dump_val(a);
-		printf(", ");
+		fputs(", ", stdout);
 	}
 	printf("), else %lli (", (long long)b->s1->id);
 	foreach_blk_param(pi, b->args1) {
 		struct val a = blk_param_at(b->args1, pi);
 		dump_val(a);
-		printf(", ");
+		fputs(", ", stdout);
 	}
-	printf(")\n");
+	fputs(")\n", stdout);
 }
 
 void dump_function(struct fn *f) {
@@ -255,5 +256,6 @@ void dump_function(struct fn *f) {
 		struct blk *b = blk_at(f->blks, i);
 		dump_block(b);
 	}
-	printf("\n");
+	putchar('\n');
 }
+#endif /* DEBUG */
