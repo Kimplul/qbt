@@ -17,7 +17,7 @@ all: setup
 
 .PHONY: analyze
 analyze: setup
-	CC='gcc -fanalyzer' SKIP_ANALYZER='-fno-analyzer' $(MAKE) CROSS_COMPILE=
+	CFLAGS='$$CFLAGS -fanalyzer' SKIP_ANALYZER='-fno-analyzer' $(MAKE)
 
 .PHONY: check
 check: all
